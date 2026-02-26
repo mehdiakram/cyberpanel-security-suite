@@ -2,7 +2,7 @@
 
 A modular, secure, production-ready CyberPanel plugin for managing **Fail2ban**, **GeoIP Analytics**, and **Country Blocking** — designed for future expansion into a full Security Suite.
 
-**Version:** 1.4  
+**Version:** 1.7  
 **Author:** [S M Mehdi Akram](https://www.facebook.com/smmehdiakram)  
 **Company:** [Royal Technologies](https://royaltechbd.com/)  
 **License:** MIT  

@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   CyberPanel Security Suite — JavaScript v1.0
+   CyberPanel Security Suite — JavaScript v1.5
    AJAX utilities for Fail2ban management. No external CDN dependencies.
    ═══════════════════════════════════════════════════════════════════════════ */
 

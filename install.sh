@@ -19,7 +19,7 @@ SIDEBAR_MARKER_END="<!-- SecuritySuite Menu End -->"
 
 echo "╔══════════════════════════════════════════════╗"
 echo "║  CyberPanel Security Suite — Installer       ║"
-echo "║  v1.3 | CyberPanel 2.4.4+ Compatible        ║"
+echo "║  v1.5 | CyberPanel 2.4.4+ Compatible        ║"
 echo "║  Royal Technologies (royaltechbd.com)        ║"
 echo "╚══════════════════════════════════════════════╝"
 echo ""

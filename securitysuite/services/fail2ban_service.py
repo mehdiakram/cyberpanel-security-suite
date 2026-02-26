@@ -72,6 +72,10 @@ def _run(args):
     Returns (success: bool, stdout: str).
     """
     try:
+        # Prepend sudo if not already there, to avoid permission issues with socket
+        if args[0] != 'sudo':
+            args = ['sudo'] + args
+            
         # Ensure common paths are in PATH (lscpd may have limited env)
         env = os.environ.copy()
         env['PATH'] = '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:' + env.get('PATH', '')

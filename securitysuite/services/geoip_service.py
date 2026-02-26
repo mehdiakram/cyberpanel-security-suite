@@ -60,7 +60,7 @@ def lookup_ip(ip_str):
 
     try:
         url = API_SINGLE.replace('{ip}', ip_str)
-        req = Request(url, headers={'User-Agent': 'CyberPanel-SecuritySuite/1.2'})
+        req = Request(url, headers={'User-Agent': 'CyberPanel-SecuritySuite/1.5'})
         resp = urlopen(req, timeout=5)
         data = json.loads(resp.read().decode('utf-8'))
 
@@ -117,7 +117,7 @@ def lookup_batch(ip_list):
                 data=payload,
                 headers={
                     'Content-Type': 'application/json',
-                    'User-Agent': 'CyberPanel-SecuritySuite/1.2',
+                    'User-Agent': 'CyberPanel-SecuritySuite/1.5',
                 }
             )
             resp = urlopen(req, timeout=10)

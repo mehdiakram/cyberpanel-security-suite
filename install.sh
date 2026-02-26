@@ -276,30 +276,57 @@ js_block = """
     'use strict';
     function injectSecuritySuiteMenu() {
         if (document.getElementById('ss-sidebar-link')) return true;
-        var allLinks = document.querySelectorAll('a');
-        var securityParent = null;
-        for (var i = 0; i < allLinks.length; i++) {
-            var linkText = (allLinks[i].textContent || '').trim();
-            if (linkText === 'Security') {
-                securityParent = allLinks[i].closest('li');
-                break;
+        
+        // CyberPanel 2.4.4+ uses id="security-submenu"
+        var subMenu = document.getElementById('security-submenu');
+        
+        if (!subMenu) {
+            // Fallback for older versions: find 'Security' link
+            var allLinks = document.querySelectorAll('a');
+            var securityParent = null;
+            for (var i = 0; i < allLinks.length; i++) {
+                var linkText = (allLinks[i].textContent || '').trim();
+                if (linkText === 'Security') {
+                    securityParent = allLinks[i].closest('li');
+                    break;
+                }
             }
+            if (!securityParent) return false;
+            subMenu = securityParent.querySelector('ul');
         }
-        if (!securityParent) return false;
-        var subMenu = securityParent.querySelector('ul');
+        
         if (!subMenu) return false;
-        var li = document.createElement('li');
-        li.id = 'ss-sidebar-link';
-        var a = document.createElement('a');
-        a.href = '/securitysuite/';
-        a.style.cssText = 'cursor:pointer;';
-        a.innerHTML = '<i class="fa fa-shield" style="margin-right:5px;color:#3b82f6;"></i> Security Suite';
-        if (window.location.pathname.indexOf('/securitysuite') === 0) {
-            a.style.color = '#3b82f6';
-            a.style.fontWeight = '600';
+        
+        // Check if we already injected in this submenu (double check)
+        if (subMenu.querySelector('#ss-sidebar-link')) return true;
+
+        var li = document.createElement('a'); // Note: In v2.4.4 items are <a>, older versions used <li><a></a>
+        
+        // If it's the new CyberPanel 2.4.4 format (div > a.menu-item)
+        if (subMenu.tagName.toLowerCase() === 'div') {
+            li.href = '/securitysuite/';
+            li.className = 'menu-item';
+            li.id = 'ss-sidebar-link';
+            li.innerHTML = '<span><i class="fa fa-shield" style="margin-right:5px;color:#3b82f6;"></i> Security Suite</span>';
+            if (window.location.pathname.indexOf('/securitysuite') === 0) {
+                li.classList.add('active');
+            }
+            subMenu.appendChild(li);
+        } else {
+            // Older format (ul > li > a)
+            var wrapperLI = document.createElement('li');
+            wrapperLI.id = 'ss-sidebar-link';
+            li.href = '/securitysuite/';
+            li.style.cssText = 'cursor:pointer;';
+            li.innerHTML = '<i class="fa fa-shield" style="margin-right:5px;color:#3b82f6;"></i> Security Suite';
+            if (window.location.pathname.indexOf('/securitysuite') === 0) {
+                li.style.color = '#3b82f6';
+                li.style.fontWeight = '600';
+            }
+            wrapperLI.appendChild(li);
+            subMenu.appendChild(wrapperLI);
         }
-        li.appendChild(a);
-        subMenu.appendChild(li);
+        
         return true;
     }
     var attempts = 0;

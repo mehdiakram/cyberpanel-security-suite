@@ -305,6 +305,7 @@ js_block = """
         // If it's the new CyberPanel 2.4.4 format (div > a.menu-item)
         if (subMenu.tagName.toLowerCase() === 'div') {
             li.href = '/securitysuite/';
+            li.target = '_blank';
             li.className = 'menu-item';
             li.id = 'ss-sidebar-link';
             li.innerHTML = '<span><i class="fa fa-shield" style="margin-right:5px;color:#3b82f6;"></i> Security Suite</span>';
@@ -317,6 +318,7 @@ js_block = """
             var wrapperLI = document.createElement('li');
             wrapperLI.id = 'ss-sidebar-link';
             li.href = '/securitysuite/';
+            li.target = '_blank';
             li.style.cssText = 'cursor:pointer;';
             li.innerHTML = '<i class="fa fa-shield" style="margin-right:5px;color:#3b82f6;"></i> Security Suite';
             if (window.location.pathname.indexOf('/securitysuite') === 0) {

@@ -1,0 +1,62 @@
+{% extends "securitysuite/base.html" %}
+
+{% block title %}Fail2ban Manager{% endblock %}
+{% block page_title %}Fail2ban Manager{% endblock %}
+
+{% block topbar_actions %}
+<button class="ss-btn ss-btn-primary" onclick="SS.reloadFail2ban()">
+    &#8635; Reload Configuration
+</button>
+<button class="ss-btn ss-btn-outline" onclick="SS.loadJails()">
+    &#8635; Refresh
+</button>
+{% endblock %}
+
+{% block content %}
+<div class="ss-panel">
+    <div class="ss-panel-header">
+        <h3>Active Jails</h3>
+    </div>
+    <div class="ss-panel-body">
+        <table class="ss-table" id="jails-table">
+            <thead>
+                <tr>
+                    <th>Jail Name</th>
+                    <th>Currently Failed</th>
+                    <th>Total Failed</th>
+                    <th>Currently Banned</th>
+                    <th>Total Banned</th>
+                    <th>Log File</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="jails-body">
+                <tr>
+                    <td colspan="7" class="ss-text-center ss-text-muted">Loading jails…</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Jail Detail Modal -->
+<div class="ss-modal-backdrop" id="jail-modal" style="display:none;">
+    <div class="ss-modal">
+        <div class="ss-modal-header">
+            <h3 id="jail-modal-title">Jail Details</h3>
+            <button class="ss-modal-close" onclick="SS.closeModal('jail-modal')">&times;</button>
+        </div>
+        <div class="ss-modal-body" id="jail-modal-body">
+            Loading…
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        SS.loadJails();
+    });
+</script>
+{% endblock %}

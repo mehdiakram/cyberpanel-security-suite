@@ -1,0 +1,136 @@
+{% extends "securitysuite/base.html" %}
+
+{% block title %}Settings{% endblock %}
+{% block page_title %}Settings{% endblock %}
+
+{% block content %}
+<!-- Plugin Info -->
+<div class="ss-panel">
+    <div class="ss-panel-header">
+        <h3>Plugin Information</h3>
+    </div>
+    <div class="ss-panel-body">
+        <table class="ss-table ss-table-info">
+            <tbody>
+                <tr>
+                    <th>Plugin Name</th>
+                    <td>CyberPanel Security Suite</td>
+                </tr>
+                <tr>
+                    <th>Version</th>
+                    <td>1.0.0</td>
+                </tr>
+                <tr>
+                    <th>Author</th>
+                    <td><a href="https://www.facebook.com/smmehdiakram" target="_blank">S M Mehdi Akram</a></td>
+                </tr>
+                <tr>
+                    <th>Company</th>
+                    <td><a href="https://royaltechbd.com/" target="_blank">Royal Technologies</a></td>
+                </tr>
+                <tr>
+                    <th>License</th>
+                    <td>MIT</td>
+                </tr>
+                <tr>
+                    <th>Repository</th>
+                    <td><a href="https://github.com/mehdiakram/cyberpanel-security-suite"
+                            target="_blank">github.com/mehdiakram/cyberpanel-security-suite</a></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Service Controls -->
+<div class="ss-panel">
+    <div class="ss-panel-header">
+        <h3>Service Controls</h3>
+    </div>
+    <div class="ss-panel-body ss-quick-actions">
+        <button class="ss-btn ss-btn-primary" onclick="SS.reloadFail2ban()">
+            &#8635; Reload Fail2ban
+        </button>
+        <button class="ss-btn ss-btn-warning" onclick="SS.restartFail2ban()">
+            &#9888; Restart Fail2ban Service
+        </button>
+    </div>
+</div>
+
+<!-- Fail2ban Status -->
+<div class="ss-panel">
+    <div class="ss-panel-header">
+        <h3>Fail2ban Status</h3>
+        <button class="ss-btn ss-btn-sm ss-btn-outline" onclick="SS.refreshSettings()">
+            &#8635; Refresh
+        </button>
+    </div>
+    <div class="ss-panel-body">
+        <table class="ss-table ss-table-info" id="settings-status-table">
+            <tbody>
+                <tr>
+                    <th>Service Status</th>
+                    <td id="settings-service-status"><span class="ss-badge ss-badge-loading">Checking…</span></td>
+                </tr>
+                <tr>
+                    <th>Installed</th>
+                    <td id="settings-installed">—</td>
+                </tr>
+                <tr>
+                    <th>Active Jails</th>
+                    <td id="settings-jails">—</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Future Modules -->
+<div class="ss-panel">
+    <div class="ss-panel-header">
+        <h3>Future Modules</h3>
+    </div>
+    <div class="ss-panel-body">
+        <div class="ss-future-modules">
+            <div class="ss-future-card">
+                <span class="ss-future-icon">&#128737;</span>
+                <h4>CSF Manager</h4>
+                <span class="ss-badge ss-badge-planned">Planned</span>
+            </div>
+            <div class="ss-future-card">
+                <span class="ss-future-icon">&#128296;</span>
+                <h4>ModSecurity</h4>
+                <span class="ss-badge ss-badge-planned">Planned</span>
+            </div>
+            <div class="ss-future-card">
+                <span class="ss-future-icon">&#127760;</span>
+                <h4>GeoIP Analytics</h4>
+                <span class="ss-badge ss-badge-planned">Planned</span>
+            </div>
+            <div class="ss-future-card">
+                <span class="ss-future-icon">&#128232;</span>
+                <h4>Email / Telegram Alerts</h4>
+                <span class="ss-badge ss-badge-planned">Planned</span>
+            </div>
+            <div class="ss-future-card">
+                <span class="ss-future-icon">&#128293;</span>
+                <h4>Brute Force Heatmap</h4>
+                <span class="ss-badge ss-badge-planned">Planned</span>
+            </div>
+            <div class="ss-future-card">
+                <span class="ss-future-icon">&#9889;</span>
+                <h4>Rate Limiting</h4>
+                <span class="ss-badge ss-badge-planned">Planned</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        SS.refreshSettings();
+    });
+</script>
+{% endblock %}

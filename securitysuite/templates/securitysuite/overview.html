@@ -1,0 +1,98 @@
+{% extends "securitysuite/base.html" %}
+
+{% block title %}Overview{% endblock %}
+{% block page_title %}Overview{% endblock %}
+
+{% block topbar_actions %}
+<button class="ss-btn ss-btn-outline" onclick="SS.refreshOverview()">
+    &#8635; Refresh
+</button>
+{% endblock %}
+
+{% block content %}
+<!-- Status Cards -->
+<div class="ss-cards">
+    <div class="ss-card ss-card-status" id="card-service">
+        <div class="ss-card-icon">&#9889;</div>
+        <div class="ss-card-body">
+            <span class="ss-card-label">Fail2ban Service</span>
+            <span class="ss-card-value" id="service-status">
+                <span class="ss-badge ss-badge-loading">Checking…</span>
+            </span>
+        </div>
+    </div>
+    <div class="ss-card" id="card-jails">
+        <div class="ss-card-icon">&#128274;</div>
+        <div class="ss-card-body">
+            <span class="ss-card-label">Active Jails</span>
+            <span class="ss-card-value ss-card-number" id="jail-count">—</span>
+        </div>
+    </div>
+    <div class="ss-card" id="card-banned">
+        <div class="ss-card-icon">&#128683;</div>
+        <div class="ss-card-body">
+            <span class="ss-card-label">Banned IPs</span>
+            <span class="ss-card-value ss-card-number" id="banned-count">—</span>
+        </div>
+    </div>
+    <div class="ss-card" id="card-installed">
+        <div class="ss-card-icon">&#128736;</div>
+        <div class="ss-card-body">
+            <span class="ss-card-label">Plugin Version</span>
+            <span class="ss-card-value">v1.2</span>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Banned IPs -->
+<div class="ss-panel">
+    <div class="ss-panel-header">
+        <h3>Recently Banned IPs</h3>
+    </div>
+    <div class="ss-panel-body">
+        <table class="ss-table" id="recent-banned-table">
+            <thead>
+                <tr>
+                    <th>IP Address</th>
+                    <th>Jail</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="recent-banned-body">
+                <tr>
+                    <td colspan="3" class="ss-text-center ss-text-muted">Loading…</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="ss-panel">
+    <div class="ss-panel-header">
+        <h3>Quick Actions</h3>
+    </div>
+    <div class="ss-panel-body ss-quick-actions">
+        <button class="ss-btn ss-btn-primary" onclick="SS.reloadFail2ban()">
+            &#8635; Reload Fail2ban
+        </button>
+        <a href="/securitysuite/jails/" class="ss-btn ss-btn-secondary">
+            &#128274; Manage Jails
+        </a>
+        <a href="/securitysuite/banned-ips/" class="ss-btn ss-btn-secondary">
+            &#128683; Manage Banned IPs
+        </a>
+        <a href="/securitysuite/logs/" class="ss-btn ss-btn-secondary">
+            &#128196; View Logs
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        SS.refreshOverview();
+    });
+</script>
+{% endblock %}

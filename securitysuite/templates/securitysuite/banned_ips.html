@@ -1,0 +1,59 @@
+{% extends "securitysuite/base.html" %}
+
+{% block title %}Banned IPs{% endblock %}
+{% block page_title %}Banned IPs{% endblock %}
+
+{% block topbar_actions %}
+<button class="ss-btn ss-btn-outline" onclick="SS.loadBannedIPs()">
+    &#8635; Refresh
+</button>
+{% endblock %}
+
+{% block content %}
+<!-- Manual Ban Form -->
+<div class="ss-panel">
+    <div class="ss-panel-header">
+        <h3>Manual Ban</h3>
+    </div>
+    <div class="ss-panel-body">
+        <form id="ban-form" class="ss-form-inline" onsubmit="return SS.handleBanForm(event)">
+            <div class="ss-form-group">
+                <label for="ban-jail">Jail</label>
+                <select id="ban-jail" class="ss-input" required>
+                    <option value="">Select Jail…</option>
+                </select>
+            </div>
+            <div class="ss-form-group">
+                <label for="ban-ip">IP Address</label>
+                <input type="text" id="ban-ip" class="ss-input" placeholder="e.g. 192.168.1.100" required
+                    pattern="^[0-9a-fA-F.:]+$" title="Enter a valid IPv4 or IPv6 address">
+            </div>
+            <button type="submit" class="ss-btn ss-btn-danger">
+                &#128683; Ban IP
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Search Filter -->
+<div class="ss-panel">
+    <div class="ss-panel-header">
+        <h3>All Banned IPs</h3>
+        <div class="ss-panel-actions">
+            <input type="text" id="ip-search" class="ss-input ss-input-search" placeholder="Search IP…"
+                oninput="SS.filterBannedIPs()">
+        </div>
+    </div>
+    <div class="ss-panel-body" id="banned-ips-container">
+        <p class="ss-text-center ss-text-muted">Loading banned IPs…</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        SS.loadBannedIPs();
+    });
+</script>
+{% endblock %}

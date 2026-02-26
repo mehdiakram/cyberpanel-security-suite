@@ -1,0 +1,70 @@
+{% extends "securitysuite/base.html" %}
+
+{% block title %}GeoIP Analytics{% endblock %}
+{% block page_title %}GeoIP Analytics{% endblock %}
+
+{% block topbar_actions %}
+<button class="ss-btn ss-btn-outline" onclick="SS.loadGeoIP()">
+    &#8635; Refresh
+</button>
+{% endblock %}
+
+{% block content %}
+<!-- Summary Cards -->
+<div class="ss-cards">
+    <div class="ss-card">
+        <div class="ss-card-icon">&#127758;</div>
+        <div class="ss-card-body">
+            <span class="ss-card-label">Countries</span>
+            <span class="ss-card-value ss-card-number" id="geo-country-count">—</span>
+        </div>
+    </div>
+    <div class="ss-card">
+        <div class="ss-card-icon">&#128683;</div>
+        <div class="ss-card-body">
+            <span class="ss-card-label">Total Banned IPs</span>
+            <span class="ss-card-value ss-card-number" id="geo-ip-count">—</span>
+        </div>
+    </div>
+</div>
+
+<!-- Top Attacking Countries -->
+<div class="ss-panel">
+    <div class="ss-panel-header">
+        <h3>&#127758; Attack Origin by Country</h3>
+    </div>
+    <div class="ss-panel-body" id="geo-chart-container">
+        <p class="ss-text-center ss-text-muted">Loading GeoIP data…</p>
+    </div>
+</div>
+
+<!-- Detailed Country Table -->
+<div class="ss-panel">
+    <div class="ss-panel-header">
+        <h3>&#128202; Detailed Breakdown</h3>
+    </div>
+    <div class="ss-panel-body" style="padding:0;">
+        <table class="ss-table" id="geo-detail-table">
+            <thead>
+                <tr>
+                    <th>Country</th>
+                    <th>Banned IPs</th>
+                    <th>Details</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="geo-detail-body">
+                <tr>
+                    <td colspan="4" class="ss-text-center ss-text-muted">Loading…</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () { SS.loadGeoIP(); });
+</script>
+{% endblock %}

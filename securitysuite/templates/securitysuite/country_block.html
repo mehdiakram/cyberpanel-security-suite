@@ -1,0 +1,71 @@
+{% extends "securitysuite/base.html" %}
+
+{% block title %}Country Block{% endblock %}
+{% block page_title %}Country Block{% endblock %}
+
+{% block topbar_actions %}
+<button class="ss-btn ss-btn-outline" onclick="SS.loadCountries()">
+    &#8635; Refresh
+</button>
+{% endblock %}
+
+{% block content %}
+<!-- Warning Banner -->
+<div
+    style="background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:16px 20px;margin-bottom:24px;display:flex;align-items:center;gap:12px;">
+    <span style="font-size:24px;">&#9888;</span>
+    <div>
+        <strong style="color:#92400e;">Warning:</strong>
+        <span style="color:#78350f;font-size:14px;">
+            Blocking a country will DROP all incoming traffic from that country's IP ranges.
+            This uses <code>ipset + iptables</code>. Make sure you don't block your own country.
+        </span>
+    </div>
+</div>
+
+<!-- Currently Blocked -->
+<div class="ss-panel">
+    <div class="ss-panel-header">
+        <h3>&#128683; Currently Blocked Countries</h3>
+        <span class="ss-badge ss-badge-inactive" id="blocked-count-badge">0</span>
+    </div>
+    <div class="ss-panel-body" id="blocked-list">
+        <p class="ss-no-data">No countries blocked.</p>
+    </div>
+</div>
+
+<!-- All Countries -->
+<div class="ss-panel">
+    <div class="ss-panel-header">
+        <h3>&#127758; All Countries</h3>
+        <div class="ss-panel-actions">
+            <input type="text" class="ss-input ss-input-search" id="country-search" placeholder="Search country…"
+                oninput="SS.filterCountries()">
+        </div>
+    </div>
+    <div class="ss-panel-body" style="padding:0;">
+        <table class="ss-table" id="country-table">
+            <thead>
+                <tr>
+                    <th>Flag</th>
+                    <th>Country</th>
+                    <th>Code</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="country-body">
+                <tr>
+                    <td colspan="5" class="ss-text-center ss-text-muted">Loading countries…</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () { SS.loadCountries(); });
+</script>
+{% endblock %}

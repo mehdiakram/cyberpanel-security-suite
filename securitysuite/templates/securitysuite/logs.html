@@ -1,0 +1,33 @@
+{% extends "securitysuite/base.html" %}
+
+{% block title %}Logs{% endblock %}
+{% block page_title %}Fail2ban Logs{% endblock %}
+
+{% block topbar_actions %}
+<label class="ss-toggle-label">
+    <input type="checkbox" id="auto-refresh-toggle" onchange="SS.toggleAutoRefresh()">
+    <span>Auto Refresh</span>
+</label>
+<button class="ss-btn ss-btn-outline" onclick="SS.loadLogs()">
+    &#8635; Refresh
+</button>
+{% endblock %}
+
+{% block content %}
+<div class="ss-panel">
+    <div class="ss-panel-header">
+        <h3>/var/log/fail2ban.log <small class="ss-text-muted">(last 200 lines)</small></h3>
+    </div>
+    <div class="ss-panel-body ss-log-panel">
+        <pre class="ss-log-viewer" id="log-viewer">Loading logs…</pre>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        SS.loadLogs();
+    });
+</script>
+{% endblock %}

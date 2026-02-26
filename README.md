@@ -1,8 +1,8 @@
 # 🛡️ CyberPanel Security Suite
 
-A modular, secure, production-ready CyberPanel plugin for managing **Fail2ban** — designed for future expansion into a full Security Suite (CSF, ModSecurity, Rate Limiting, Firewall Analytics, and more).
+A modular, secure, production-ready CyberPanel plugin for managing **Fail2ban**, **GeoIP Analytics**, and **Country Blocking** — designed for future expansion into a full Security Suite.
 
-**Version:** 1.0.0  
+**Version:** 1.3  
 **Author:** [S M Mehdi Akram](https://www.facebook.com/smmehdiakram)  
 **Company:** [Royal Technologies](https://royaltechbd.com/)  
 **License:** MIT  
@@ -15,6 +15,8 @@ A modular, secure, production-ready CyberPanel plugin for managing **Fail2ban** 
 - **Dashboard** — Real-time Fail2ban status, jail count, banned IP count, last 10 banned IPs
 - **Jail Manager** — View all active jails with detailed stats
 - **Banned IPs** — View, search, ban/unban IPs across all jails
+- **🌍 GeoIP Analytics** — See where attacks come from, country stats with flag emojis, bar charts
+- **🚫 Country Blocking** — Block/unblock entire countries with ipset+iptables, searchable list
 - **Logs Viewer** — Read-only view of `/var/log/fail2ban.log` with auto-refresh
 - **Settings** — Plugin info, service controls, future module roadmap
 - **Security Hardened** — Admin-only access, CSRF protection, rate limiting, whitelisted commands, input validation, subprocess safety
@@ -34,7 +36,8 @@ A modular, secure, production-ready CyberPanel plugin for managing **Fail2ban** 
 
 **Requirements:**
 - CyberPanel (with OpenLiteSpeed) installed
-- Fail2ban installed (`apt install fail2ban -y` or `yum install fail2ban -y`)
+- Fail2ban installed (auto-installed by installer)
+- ipset installed (auto-installed by installer for country blocking)
 - Root access
 - Minimum 1024MB RAM, 10GB disk space
 
@@ -92,19 +95,23 @@ cyberpanel-security-suite/
 │   ├── permissions.py           # Admin-only + rate limiting decorators
 │   ├── services/
 │   │   ├── fail2ban_service.py  # Fail2ban command layer (secure)
+│   │   ├── geoip_service.py     # IP geolocation (ip-api.com)
+│   │   ├── country_block_service.py # Country blocking (ipset+iptables)
 │   │   └── system_service.py    # Logging + system utilities
 │   ├── templates/securitysuite/
-│   │   ├── base.html            # Layout template
+│   │   ├── base.html            # Layout template (all CSS/JS inlined)
 │   │   ├── overview.html        # Dashboard
 │   │   ├── jails.html           # Jail manager
 │   │   ├── banned_ips.html      # Banned IP management
+│   │   ├── geoip.html           # GeoIP analytics
+│   │   ├── country_block.html   # Country blocking
 │   │   ├── logs.html            # Log viewer
 │   │   └── settings.html        # Settings / info
 │   └── static/securitysuite/
 │       ├── css/securitysuite.css # Styles
 │       └── js/securitysuite.js  # AJAX logic
 │
-├── install.sh                   # Installer script
+├── install.sh                   # Installer (auto-installs fail2ban + ipset)
 ├── uninstall.sh                 # Uninstaller script
 ├── README.md
 └── LICENSE
@@ -145,11 +152,9 @@ No dynamic shell input. No raw output rendered.
 
 - 🔥 CSF Firewall Manager
 - 🛠️ ModSecurity Control
-- 🌍 GeoIP Analytics
 - 📊 Brute Force Heatmap
 - ⚡ Rate Limiting Rules
-- 📧 Email Alerts
-- 📱 Telegram Alerts
+- 📧 Email / Telegram Alerts
 
 ---
 

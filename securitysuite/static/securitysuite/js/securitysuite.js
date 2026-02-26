@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   CyberPanel Security Suite — JavaScript v1.6
+   CyberPanel Security Suite — JavaScript v1.7
    AJAX utilities for Fail2ban management. No external CDN dependencies.
    ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -95,8 +95,8 @@ var SS = (function () {
                 var allBanned = [];
                 jr.data.forEach(function (jail) {
                     totalBanned += jail.currently_banned || 0;
-                    (jail.banned_ips || []).forEach(function (ip) {
-                        allBanned.push({ ip: ip, jail: jail.jail });
+                    (jail.banned_ips_with_time || []).forEach(function (item) {
+                        allBanned.push({ ip: item.ip, time: item.time, jail: jail.jail });
                     });
                 });
                 var bannedEl = document.getElementById('banned-count');
@@ -107,12 +107,13 @@ var SS = (function () {
                 if (tbody) {
                     var recent = allBanned.slice(-10).reverse();
                     if (recent.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="3" class="ss-text-center ss-text-muted">No banned IPs found.</td></tr>';
+                        tbody.innerHTML = '<tr><td colspan="4" class="ss-text-center ss-text-muted">No banned IPs found.</td></tr>';
                     } else {
                         tbody.innerHTML = recent.map(function (item) {
                             return '<tr>' +
                                 '<td><code>' + escapeHtml(item.ip) + '</code></td>' +
                                 '<td><span class="ss-badge ss-badge-warning">' + escapeHtml(item.jail) + '</span></td>' +
+                                '<td><small class="ss-text-muted">' + escapeHtml(item.time) + '</small></td>' +
                                 '<td><button class="ss-btn ss-btn-xs ss-btn-danger" onclick="SS.unbanIP(\'' +
                                 escapeHtml(item.jail) + '\', \'' + escapeHtml(item.ip) + '\')">Unban</button></td>' +
                                 '</tr>';
@@ -211,22 +212,23 @@ var SS = (function () {
             var hasAny = false;
             var html = '';
             res.data.forEach(function (jail) {
-                var ips = jail.banned_ips || [];
+                var ips = jail.banned_ips_with_time || [];
                 if (ips.length === 0) return;
                 hasAny = true;
-                
-                ips.forEach(function (ip) {
-                    html += '<tr class="banned-ip-row" data-ip="' + escapeHtml(ip) + '">' +
-                        '<td><code>' + escapeHtml(ip) + '</code></td>' +
+
+                ips.forEach(function (item) {
+                    html += '<tr class="banned-ip-row" data-ip="' + escapeHtml(item.ip) + '">' +
+                        '<td><code>' + escapeHtml(item.ip) + '</code></td>' +
                         '<td><span class="ss-badge ss-badge-warning">' + escapeHtml(jail.jail) + '</span></td>' +
+                        '<td><small class="ss-text-muted">' + escapeHtml(item.time) + '</small></td>' +
                         '<td><button class="ss-btn ss-btn-xs ss-btn-danger" title="Unban" onclick="SS.unbanIP(\'' +
-                        escapeHtml(jail.jail) + '\', \'' + escapeHtml(ip) + '\')">Unban</button></td>' +
+                        escapeHtml(jail.jail) + '\', \'' + escapeHtml(item.ip) + '\')">Unban</button></td>' +
                         '</tr>';
                 });
             });
 
             if (!hasAny) {
-                container.innerHTML = '<tr><td colspan="3" class="ss-text-center ss-text-muted">No banned IPs across any jail.</td></tr>';
+                container.innerHTML = '<tr><td colspan="4" class="ss-text-center ss-text-muted">No banned IPs across any jail.</td></tr>';
             } else {
                 container.innerHTML = html;
             }

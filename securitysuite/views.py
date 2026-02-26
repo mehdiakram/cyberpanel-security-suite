@@ -1,5 +1,5 @@
 """
-CyberPanel Security Suite — Views (v1.6)
+CyberPanel Security Suite — Views (v1.7)
 Page views and AJAX API endpoints for Fail2ban, GeoIP, and Country Blocking.
 All views require admin access and include CSRF protection.
 """
@@ -87,10 +87,22 @@ def api_jails(request):
     try:
         overall = fail2ban_service.get_status()
         jails_data = []
+        all_ips = set()
         for jail_name in overall.get('jails', []):
             info = fail2ban_service.get_jail_status(jail_name)
             if 'error' not in info:
                 jails_data.append(info)
+                for ip in info.get('banned_ips', []):
+                    all_ips.add(ip)
+        
+        # Add ban times
+        ban_times = system_service.get_ban_times(list(all_ips))
+        for info in jails_data:
+            info['banned_ips_with_time'] = [
+                {'ip': ip, 'time': ban_times.get(ip, 'Unknown')} 
+                for ip in info.get('banned_ips', [])
+            ]
+            
         return JsonResponse({'status': True, 'data': jails_data})
     except Exception as exc:
         logger.exception('api_jails error: %s', exc)
@@ -105,6 +117,13 @@ def api_jail_detail(request, jail_name):
         info = fail2ban_service.get_jail_status(jail_name)
         if 'error' in info:
             return JsonResponse({'status': False, 'error': info['error']}, status=400)
+            
+        # Add ban times
+        ban_times = system_service.get_ban_times(info.get('banned_ips', []))
+        info['banned_ips_with_time'] = [
+            {'ip': ip, 'time': ban_times.get(ip, 'Unknown')} 
+            for ip in info.get('banned_ips', [])
+        ]
         return JsonResponse({'status': True, 'data': info})
     except Exception as exc:
         logger.exception('api_jail_detail error: %s', exc)

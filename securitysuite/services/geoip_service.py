@@ -117,7 +117,7 @@ def lookup_batch(ip_list):
                 data=payload,
                 headers={
                     'Content-Type': 'application/json',
-                    'User-Agent': 'CyberPanel-SecuritySuite/1.6',
+                    'User-Agent': 'CyberPanel-SecuritySuite/1.7',
                 }
             )
             resp = urlopen(req, timeout=10)

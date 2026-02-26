@@ -91,6 +91,58 @@ def read_log_file(log_key='fail2ban', num_lines=200):
 # Service checks
 # ---------------------------------------------------------------------------
 
+def get_ban_times(ip_list, max_lines=5000):
+    """
+    Read the fail2ban log and extract the most recent Ban time for each given IP.
+    Returns dict: {'ip': 'YYYY-MM-DD HH:MM:SS'}
+    """
+    if not ip_list:
+        return {}
+        
+    path = ALLOWED_LOG_PATHS.get('fail2ban')
+    if not path:
+        return {}
+
+    import subprocess
+    
+    result_map = {ip: 'Unknown' for ip in ip_list}
+    ips_to_find = set(ip_list)
+    
+    try:
+        result = subprocess.run(
+            ['sudo', 'tail', '-n', str(max_lines), path],
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+        if result.returncode == 0:
+            lines = result.stdout.splitlines()
+            # Read from bottom to get most recent bans first
+            for line in reversed(lines):
+                if not ips_to_find:
+                    break
+                    
+                line = _sanitise(line)
+                
+                # Sample log: 2024-03-24 15:30:12,123 fail2ban.actions [123]: NOTICE [sshd] Ban 192.168.1.100
+                if ' Ban ' in line:
+                    parts = line.split(' ')
+                    # parts[0] is typically date, parts[1] is time (potentially with comma milliseconds)
+                    if len(parts) >= 8:
+                        date_str = parts[0]
+                        time_str = parts[1].split(',')[0]
+                        banned_ip = parts[-1]
+                        
+                        if banned_ip in ips_to_find:
+                            # Construct timestamp
+                            result_map[banned_ip] = f"{date_str} {time_str}"
+                            ips_to_find.remove(banned_ip)
+                            
+    except Exception as exc:
+        get_plugin_logger().error(f"Error fetching ban times: {exc}")
+        
+    return result_map
+
 def check_service_exists(service_name):
     """
     Return True if a systemd service unit exists.

@@ -119,8 +119,8 @@ def is_fail2ban_installed():
 
 def is_active():
     """Return True if the fail2ban service is currently active."""
-    ok, output = _run(['systemctl', 'is-active', 'fail2ban'])
-    return ok and output == 'active'
+    ok, output = _run([_get_f2b_client(), 'ping'])
+    return ok and 'pong' in output.lower()
 
 
 # ---------------------------------------------------------------------------

@@ -214,23 +214,19 @@ var SS = (function () {
                 var ips = jail.banned_ips || [];
                 if (ips.length === 0) return;
                 hasAny = true;
-                html += '<div class="ss-jail-group" data-jail="' + escapeHtml(jail.jail) + '">' +
-                    '<div class="ss-jail-group-header">' +
-                    '&#128274; ' + escapeHtml(jail.jail) +
-                    ' <span class="ss-jail-group-count">' + ips.length + '</span>' +
-                    '</div>' +
-                    '<div class="ss-ip-list">';
+                
                 ips.forEach(function (ip) {
-                    html += '<span class="ss-ip-tag" data-ip="' + escapeHtml(ip) + '">' +
-                        '<code>' + escapeHtml(ip) + '</code>' +
-                        '<button class="ss-unban-btn" title="Unban" onclick="SS.unbanIP(\'' +
-                        escapeHtml(jail.jail) + '\', \'' + escapeHtml(ip) + '\')">&times;</button></span>';
+                    html += '<tr class="banned-ip-row" data-ip="' + escapeHtml(ip) + '">' +
+                        '<td><code>' + escapeHtml(ip) + '</code></td>' +
+                        '<td><span class="ss-badge ss-badge-warning">' + escapeHtml(jail.jail) + '</span></td>' +
+                        '<td><button class="ss-btn ss-btn-xs ss-btn-danger" title="Unban" onclick="SS.unbanIP(\'' +
+                        escapeHtml(jail.jail) + '\', \'' + escapeHtml(ip) + '\')">Unban</button></td>' +
+                        '</tr>';
                 });
-                html += '</div></div>';
             });
 
             if (!hasAny) {
-                container.innerHTML = '<p class="ss-no-data">No banned IPs across any jail.</p>';
+                container.innerHTML = '<tr><td colspan="3" class="ss-text-center ss-text-muted">No banned IPs across any jail.</td></tr>';
             } else {
                 container.innerHTML = html;
             }
@@ -239,10 +235,10 @@ var SS = (function () {
 
     function filterBannedIPs() {
         var query = (document.getElementById('ip-search').value || '').toLowerCase();
-        var tags = document.querySelectorAll('.ss-ip-tag');
-        tags.forEach(function (tag) {
-            var ip = (tag.getAttribute('data-ip') || '').toLowerCase();
-            tag.style.display = ip.indexOf(query) >= 0 ? '' : 'none';
+        var rows = document.querySelectorAll('.banned-ip-row');
+        rows.forEach(function (row) {
+            var ip = (row.getAttribute('data-ip') || '').toLowerCase();
+            row.style.display = ip.indexOf(query) >= 0 ? '' : 'none';
         });
     }
 

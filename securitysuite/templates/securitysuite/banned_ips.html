@@ -44,8 +44,21 @@
                 oninput="SS.filterBannedIPs()">
         </div>
     </div>
-    <div class="ss-panel-body" id="banned-ips-container">
-        <p class="ss-text-center ss-text-muted">Loading banned IPs…</p>
+    <div class="ss-panel-body">
+        <table class="ss-table" id="banned-ips-table">
+            <thead>
+                <tr>
+                    <th>IP Address</th>
+                    <th>Jail / Service (Site Proxy)</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="banned-ips-container">
+                <tr>
+                    <td colspan="3" class="ss-text-center ss-text-muted">Loading banned IPs…</td>
+                </tr>
+            </tbody>
+        </table>
     </div>
 </div>
 {% endblock %}

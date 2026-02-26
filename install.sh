@@ -261,64 +261,86 @@ if [ -f "$SIDEBAR_FILE" ]; then
         echo "  → Removed old sidebar injection."
     fi
 
-    # Create a temp file with the JS injection
-    TMPJS=$(mktemp)
-    cat > "$TMPJS" << 'SIDEBAR_EOF'
-<!-- SecuritySuite Menu Start -->\
-<script>\
-(function() {\
-    'use strict';\
-    function injectSecuritySuiteMenu() {\
-        if (document.getElementById('ss-sidebar-link')) return true;\
-        var allLinks = document.querySelectorAll('a');\
-        var securityParent = null;\
-        for (var i = 0; i < allLinks.length; i++) {\
-            var linkText = (allLinks[i].textContent || '').trim();\
-            if (linkText === 'Security') {\
-                securityParent = allLinks[i].closest('li');\
-                break;\
-            }\
-        }\
-        if (!securityParent) return false;\
-        var subMenu = securityParent.querySelector('ul');\
-        if (!subMenu) return false;\
-        var li = document.createElement('li');\
-        li.id = 'ss-sidebar-link';\
-        var a = document.createElement('a');\
-        a.href = '/securitysuite/';\
-        a.style.cssText = 'cursor:pointer;';\
-        a.innerHTML = '<i class="fa fa-shield" style="margin-right:5px;color:#3b82f6;"><\/i> Security Suite';\
-        if (window.location.pathname.indexOf('/securitysuite') === 0) {\
-            a.style.color = '#3b82f6';\
-            a.style.fontWeight = '600';\
-        }\
-        li.appendChild(a);\
-        subMenu.appendChild(li);\
-        return true;\
-    }\
-    var attempts = 0;\
-    var timer = setInterval(function() {\
-        attempts++;\
-        if (injectSecuritySuiteMenu() || attempts >= 40) clearInterval(timer);\
-    }, 500);\
-    window.addEventListener('hashchange', function() { setTimeout(injectSecuritySuiteMenu, 500); });\
-})();\
-<\/script>\
-<!-- SecuritySuite Menu End -->
-SIDEBAR_EOF
+    # Use Python to safely inject JS (avoids all sed/escaping issues)
+    python3 << 'PYEOF'
+import sys
 
-    # Inject BEFORE </body> tag (not after </html>)
-    if grep -q "</body>" "$SIDEBAR_FILE"; then
-        sed -i "/<\/body>/r $TMPJS" "$SIDEBAR_FILE"
-        echo "  ✓ Injected before </body> tag."
-    elif grep -q "</html>" "$SIDEBAR_FILE"; then
-        sed -i "/<\/html>/r $TMPJS" "$SIDEBAR_FILE"
-        echo "  ✓ Injected before </html> tag."
-    else
-        cat "$TMPJS" >> "$SIDEBAR_FILE"
-        echo "  ✓ Appended to file."
-    fi
-    rm -f "$TMPJS"
+sidebar_file = "/usr/local/CyberCP/baseTemplate/templates/baseTemplate/index.html"
+marker_start = "<!-- SecuritySuite Menu Start -->"
+marker_end = "<!-- SecuritySuite Menu End -->"
+
+js_block = """
+<!-- SecuritySuite Menu Start -->
+<script>
+(function() {
+    'use strict';
+    function injectSecuritySuiteMenu() {
+        if (document.getElementById('ss-sidebar-link')) return true;
+        var allLinks = document.querySelectorAll('a');
+        var securityParent = null;
+        for (var i = 0; i < allLinks.length; i++) {
+            var linkText = (allLinks[i].textContent || '').trim();
+            if (linkText === 'Security') {
+                securityParent = allLinks[i].closest('li');
+                break;
+            }
+        }
+        if (!securityParent) return false;
+        var subMenu = securityParent.querySelector('ul');
+        if (!subMenu) return false;
+        var li = document.createElement('li');
+        li.id = 'ss-sidebar-link';
+        var a = document.createElement('a');
+        a.href = '/securitysuite/';
+        a.style.cssText = 'cursor:pointer;';
+        a.innerHTML = '<i class="fa fa-shield" style="margin-right:5px;color:#3b82f6;"></i> Security Suite';
+        if (window.location.pathname.indexOf('/securitysuite') === 0) {
+            a.style.color = '#3b82f6';
+            a.style.fontWeight = '600';
+        }
+        li.appendChild(a);
+        subMenu.appendChild(li);
+        return true;
+    }
+    var attempts = 0;
+    var timer = setInterval(function() {
+        attempts++;
+        if (injectSecuritySuiteMenu() || attempts >= 40) clearInterval(timer);
+    }, 500);
+    window.addEventListener('hashchange', function() { setTimeout(injectSecuritySuiteMenu, 500); });
+})();
+</script>
+<!-- SecuritySuite Menu End -->
+"""
+
+try:
+    with open(sidebar_file, 'r') as f:
+        content = f.read()
+
+    # Remove any existing injection
+    if marker_start in content:
+        start = content.index(marker_start)
+        end = content.index(marker_end) + len(marker_end)
+        content = content[:start] + content[end:]
+
+    # Inject before </body>
+    if '</body>' in content:
+        content = content.replace('</body>', js_block + '\n</body>')
+        print("  OK: Injected before </body>")
+    elif '</html>' in content:
+        content = content.replace('</html>', js_block + '\n</html>')
+        print("  OK: Injected before </html>")
+    else:
+        content += js_block
+        print("  OK: Appended to file")
+
+    with open(sidebar_file, 'w') as f:
+        f.write(content)
+
+except Exception as e:
+    print(f"  ERROR: {e}", file=sys.stderr)
+    sys.exit(1)
+PYEOF
 
     if grep -q "$SIDEBAR_MARKER_START" "$SIDEBAR_FILE"; then
         echo "  ✓ Security Suite menu injected into CyberPanel sidebar."

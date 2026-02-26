@@ -72,12 +72,19 @@ def _run(args):
     Returns (success: bool, stdout: str).
     """
     try:
+        # Ensure common paths are in PATH (lscpd may have limited env)
+        env = os.environ.copy()
+        env['PATH'] = '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:' + env.get('PATH', '')
+
         result = subprocess.run(
             args,
             capture_output=True,
             text=True,
             timeout=_CMD_TIMEOUT,
+            env=env,
         )
+        if result.returncode != 0 and result.stderr:
+            logger.warning('Command %s stderr: %s', args[0], result.stderr.strip())
         return result.returncode == 0, result.stdout.strip()
     except subprocess.TimeoutExpired:
         logger.error('Command timed out: %s', ' '.join(args))

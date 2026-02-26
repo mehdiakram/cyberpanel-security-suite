@@ -10,6 +10,7 @@ Security measures:
   • All output parsed and sanitised before returning
 """
 
+import os
 import re
 import ipaddress
 import subprocess
@@ -44,6 +45,26 @@ def validate_ip(ip_str):
 
 _CMD_TIMEOUT = 10  # seconds
 
+# Auto-detect fail2ban-client path (lscpd may not have it in PATH)
+_F2B_CLIENT = None
+
+def _get_f2b_client():
+    global _F2B_CLIENT
+    if _F2B_CLIENT:
+        return _F2B_CLIENT
+    # Try common paths
+    import shutil
+    path = shutil.which('fail2ban-client')
+    if path:
+        _F2B_CLIENT = path
+        return path
+    for p in ['/usr/bin/fail2ban-client', '/usr/local/bin/fail2ban-client', '/usr/sbin/fail2ban-client']:
+        if os.path.isfile(p) and os.access(p, os.X_OK):
+            _F2B_CLIENT = p
+            return p
+    _F2B_CLIENT = 'fail2ban-client'  # fallback
+    return _F2B_CLIENT
+
 
 def _run(args):
     """
@@ -76,7 +97,13 @@ def _run(args):
 def is_fail2ban_installed():
     """Check if fail2ban-client binary is available."""
     ok, _ = _run(['which', 'fail2ban-client'])
-    return ok
+    if ok:
+        return True
+    # Also check common paths
+    for p in ['/usr/bin/fail2ban-client', '/usr/local/bin/fail2ban-client', '/usr/sbin/fail2ban-client']:
+        if os.path.isfile(p):
+            return True
+    return False
 
 
 def is_active():
@@ -95,7 +122,7 @@ def get_status():
     Returns dict: {active: bool, jails: [str], jail_count: int}
     """
     active = is_active()
-    ok, output = _run(['fail2ban-client', 'status'])
+    ok, output = _run([_get_f2b_client(), 'status'])
     jails = []
     if ok:
         for line in output.splitlines():
@@ -118,7 +145,7 @@ def get_jail_status(jail_name):
     if not validate_jail_name(jail_name):
         return {'error': 'Invalid jail name.'}
 
-    ok, output = _run(['fail2ban-client', 'status', jail_name])
+    ok, output = _run([_get_f2b_client(), 'status', jail_name])
     if not ok:
         return {'error': f'Could not get status for jail: {jail_name}'}
 
@@ -180,7 +207,7 @@ def ban_ip(jail_name, ip_str):
         return False, 'Invalid IP address.'
 
     ip_str = ip_str.strip()
-    ok, output = _run(['fail2ban-client', 'set', jail_name, 'banip', ip_str])
+    ok, output = _run([_get_f2b_client(), 'set', jail_name, 'banip', ip_str])
     if ok:
         logger.info('BANNED ip=%s jail=%s', ip_str, jail_name)
         return True, f'{ip_str} has been banned in {jail_name}.'
@@ -196,7 +223,7 @@ def unban_ip(jail_name, ip_str):
         return False, 'Invalid IP address.'
 
     ip_str = ip_str.strip()
-    ok, output = _run(['fail2ban-client', 'set', jail_name, 'unbanip', ip_str])
+    ok, output = _run([_get_f2b_client(), 'set', jail_name, 'unbanip', ip_str])
     if ok:
         logger.info('UNBANNED ip=%s jail=%s', ip_str, jail_name)
         return True, f'{ip_str} has been unbanned from {jail_name}.'
@@ -206,7 +233,7 @@ def unban_ip(jail_name, ip_str):
 
 def reload():
     """Reload fail2ban configuration. Returns (success, message)."""
-    ok, output = _run(['fail2ban-client', 'reload'])
+    ok, output = _run([_get_f2b_client(), 'reload'])
     if ok:
         logger.info('Fail2ban configuration reloaded.')
         return True, 'Fail2ban reloaded successfully.'

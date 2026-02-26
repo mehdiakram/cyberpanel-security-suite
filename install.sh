@@ -19,7 +19,7 @@ SIDEBAR_MARKER_END="<!-- SecuritySuite Menu End -->"
 
 echo "╔══════════════════════════════════════════════╗"
 echo "║  CyberPanel Security Suite — Installer       ║"
-echo "║  v1.2 | CyberPanel 2.4.4+ Compatible        ║"
+echo "║  v1.3 | CyberPanel 2.4.4+ Compatible        ║"
 echo "║  Royal Technologies (royaltechbd.com)        ║"
 echo "╚══════════════════════════════════════════════╝"
 echo ""
@@ -261,74 +261,64 @@ if [ -f "$SIDEBAR_FILE" ]; then
         echo "  → Removed old sidebar injection."
     fi
 
-    # Create the JavaScript injection block
-    # This uses polling to wait for AngularJS to finish rendering the sidebar
-    cat >> "$SIDEBAR_FILE" << 'SIDEBAR_EOF'
-<!-- SecuritySuite Menu Start -->
-<script>
-(function() {
-    'use strict';
-    function injectSecuritySuiteMenu() {
-        // Already injected?
-        if (document.getElementById('ss-sidebar-link')) return true;
-
-        // CyberPanel sidebar uses <a> tags with text content
-        // Find the "Security" parent menu item
-        var allLinks = document.querySelectorAll('a');
-        var securityParent = null;
-
-        for (var i = 0; i < allLinks.length; i++) {
-            var linkText = (allLinks[i].textContent || '').trim();
-            // Match the Security top-level menu (not sub-items like "Secure SSH")
-            if (linkText === 'Security') {
-                securityParent = allLinks[i].closest('li');
-                break;
-            }
-        }
-
-        if (!securityParent) return false;
-
-        // Find the sub-menu <ul> inside the Security section
-        var subMenu = securityParent.querySelector('ul');
-        if (!subMenu) return false;
-
-        // Create our menu item
-        var li = document.createElement('li');
-        li.id = 'ss-sidebar-link';
-        var a = document.createElement('a');
-        a.href = '/securitysuite/';
-        a.style.cssText = 'cursor:pointer;';
-        a.innerHTML = '<i class="fa fa-shield" style="margin-right:5px;color:#3b82f6;"></i> Security Suite';
-
-        // Highlight if we're on the security suite page
-        if (window.location.pathname.indexOf('/securitysuite') === 0) {
-            a.style.color = '#3b82f6';
-            a.style.fontWeight = '600';
-        }
-
-        li.appendChild(a);
-        subMenu.appendChild(li);
-        return true;
-    }
-
-    // Poll until sidebar is rendered by AngularJS
-    var attempts = 0;
-    var maxAttempts = 40; // 40 x 500ms = 20 seconds max
-    var timer = setInterval(function() {
-        attempts++;
-        if (injectSecuritySuiteMenu() || attempts >= maxAttempts) {
-            clearInterval(timer);
-        }
-    }, 500);
-
-    // Also try on page navigation (AngularJS SPA)
-    window.addEventListener('hashchange', function() {
-        setTimeout(injectSecuritySuiteMenu, 500);
-    });
-})();
-</script>
+    # Create a temp file with the JS injection
+    TMPJS=$(mktemp)
+    cat > "$TMPJS" << 'SIDEBAR_EOF'
+<!-- SecuritySuite Menu Start -->\
+<script>\
+(function() {\
+    'use strict';\
+    function injectSecuritySuiteMenu() {\
+        if (document.getElementById('ss-sidebar-link')) return true;\
+        var allLinks = document.querySelectorAll('a');\
+        var securityParent = null;\
+        for (var i = 0; i < allLinks.length; i++) {\
+            var linkText = (allLinks[i].textContent || '').trim();\
+            if (linkText === 'Security') {\
+                securityParent = allLinks[i].closest('li');\
+                break;\
+            }\
+        }\
+        if (!securityParent) return false;\
+        var subMenu = securityParent.querySelector('ul');\
+        if (!subMenu) return false;\
+        var li = document.createElement('li');\
+        li.id = 'ss-sidebar-link';\
+        var a = document.createElement('a');\
+        a.href = '/securitysuite/';\
+        a.style.cssText = 'cursor:pointer;';\
+        a.innerHTML = '<i class="fa fa-shield" style="margin-right:5px;color:#3b82f6;"><\/i> Security Suite';\
+        if (window.location.pathname.indexOf('/securitysuite') === 0) {\
+            a.style.color = '#3b82f6';\
+            a.style.fontWeight = '600';\
+        }\
+        li.appendChild(a);\
+        subMenu.appendChild(li);\
+        return true;\
+    }\
+    var attempts = 0;\
+    var timer = setInterval(function() {\
+        attempts++;\
+        if (injectSecuritySuiteMenu() || attempts >= 40) clearInterval(timer);\
+    }, 500);\
+    window.addEventListener('hashchange', function() { setTimeout(injectSecuritySuiteMenu, 500); });\
+})();\
+<\/script>\
 <!-- SecuritySuite Menu End -->
 SIDEBAR_EOF
+
+    # Inject BEFORE </body> tag (not after </html>)
+    if grep -q "</body>" "$SIDEBAR_FILE"; then
+        sed -i "/<\/body>/r $TMPJS" "$SIDEBAR_FILE"
+        echo "  ✓ Injected before </body> tag."
+    elif grep -q "</html>" "$SIDEBAR_FILE"; then
+        sed -i "/<\/html>/r $TMPJS" "$SIDEBAR_FILE"
+        echo "  ✓ Injected before </html> tag."
+    else
+        cat "$TMPJS" >> "$SIDEBAR_FILE"
+        echo "  ✓ Appended to file."
+    fi
+    rm -f "$TMPJS"
 
     if grep -q "$SIDEBAR_MARKER_START" "$SIDEBAR_FILE"; then
         echo "  ✓ Security Suite menu injected into CyberPanel sidebar."

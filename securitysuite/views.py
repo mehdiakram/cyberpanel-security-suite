@@ -1,5 +1,5 @@
 """
-CyberPanel Security Suite — Views (v1.5)
+CyberPanel Security Suite — Views (v1.6)
 Page views and AJAX API endpoints for Fail2ban, GeoIP, and Country Blocking.
 All views require admin access and include CSRF protection.
 """

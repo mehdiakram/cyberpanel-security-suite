@@ -19,7 +19,7 @@ SIDEBAR_MARKER_END="<!-- SecuritySuite Menu End -->"
 
 echo "╔══════════════════════════════════════════════╗"
 echo "║  CyberPanel Security Suite — Installer       ║"
-echo "║  v1.5 | CyberPanel 2.4.4+ Compatible        ║"
+echo "║  v1.6 | CyberPanel 2.4.4+ Compatible        ║"
 echo "║  Royal Technologies (royaltechbd.com)        ║"
 echo "╚══════════════════════════════════════════════╝"
 echo ""
@@ -206,6 +206,15 @@ if [ ! -f "$PLUGINS_DIR/__init__.py" ]; then
     touch "$PLUGINS_DIR/__init__.py"
 fi
 
+# ── Configure sudoers for CyberPanel user ────────────────────────────────
+echo "→ Configuring passwordless sudo for CyberPanel user…"
+cat > /etc/sudoers.d/cyberpanel-security-suite << 'SUDOEOF'
+# Allows CyberPanel to manage Fail2ban securely without password
+cyberpanel ALL=(root) NOPASSWD: /usr/bin/fail2ban-client, /usr/local/bin/fail2ban-client, /usr/sbin/fail2ban-client, /usr/bin/tail -n * /var/log/fail2ban.log
+SUDOEOF
+chmod 0440 /etc/sudoers.d/cyberpanel-security-suite
+echo "  ✓ Added /etc/sudoers.d/cyberpanel-security-suite"
+
 # ── Register URL route in CyberPanel ─────────────────────────────────────
 echo "→ Registering Security Suite URL route…"
 
@@ -390,12 +399,13 @@ else
 fi
 
 echo ""
-echo "╔══════════════════════════════════════════════╗"
-echo "║  ✓ Installation Complete!                    ║"
-echo "║                                              ║"
+echo "╔══════════════════════════════════════════════════════════╗"
+echo "║  ✓ Installation Complete!                                ║"
+echo "║  CyberPanel Security Suite v1.6                          ║"
+echo "║                                                          ║"
 echo "║  Plugin:   $PLUGIN_DIR"
 echo "║  Logs:     $LOG_FILE"
 echo "║  Fail2ban: $(systemctl is-active fail2ban 2>/dev/null || echo 'unknown')"
-echo "║                                              ║"
-echo "║  CyberPanel → Security → Security Suite     ║"
-echo "╚══════════════════════════════════════════════╝"
+echo "║                                                          ║"
+echo "║  CyberPanel → Security → Security Suite                  ║"
+echo "╚══════════════════════════════════════════════════════════╝"

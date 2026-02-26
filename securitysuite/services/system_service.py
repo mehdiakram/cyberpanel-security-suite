@@ -59,22 +59,30 @@ get_plugin_logger()
 
 def read_log_file(log_key='fail2ban', num_lines=200):
     """
-    Read the last *num_lines* from a whitelisted log file.
+    Read the last *num_lines* from a whitelisted log file securely using sudo.
     Returns list of strings (lines).
     """
     path = ALLOWED_LOG_PATHS.get(log_key)
     if not path:
         return [f'Unknown log key: {log_key}']
 
-    if not os.path.isfile(path):
-        return [f'Log file not found: {path}']
-
+    import subprocess
     try:
-        with open(path, 'r', encoding='utf-8', errors='replace') as fh:
-            lines = fh.readlines()
-        return [_sanitise(line) for line in lines[-num_lines:]]
-    except PermissionError:
-        return [f'Permission denied: {path}']
+        # Run sudo tail -n {num_lines} {path}
+        # lscpd allows sudo without password for certain commands or ALL if configured properly
+        result = subprocess.run(
+            ['sudo', 'tail', '-n', str(num_lines), path],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        if result.returncode == 0:
+            lines = result.stdout.splitlines()
+            if not lines:
+                return [f'Log file is empty: {path}']
+            return [_sanitise(line) for line in lines]
+        else:
+            return [f'Failed to read log {path}', f'Error: {result.stderr.strip()}']
     except Exception as exc:
         return [f'Error reading log: {exc}']
 

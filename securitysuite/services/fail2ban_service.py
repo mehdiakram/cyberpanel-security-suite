@@ -269,7 +269,8 @@ def restart_service():
 import platform
 import sys
 
-if sys.platform == 'win32' or 'laragon' in os.path.abspath(__file__).lower() or os.name == 'nt':
+# Test for Windows or missing /etc directory
+if getattr(sys, 'platform', '').startswith('win') or os.name == 'nt' or not os.path.exists('/etc') or 'laragon' in str(__file__).lower():
     # Use a dummy local path for Windows / Laragon testing
     JAIL_LOCAL_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'jail.local.test')
 else:

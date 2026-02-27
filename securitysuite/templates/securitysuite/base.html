@@ -974,7 +974,9 @@
                         var totalBanned = 0, allBanned = [];
                         jr.data.forEach(function (jail) {
                             totalBanned += jail.currently_banned || 0;
-                            (jail.banned_ips || []).forEach(function (ip) { allBanned.push({ ip: ip, jail: jail.jail }); });
+                            (jail.banned_ips_with_time || []).forEach(function (item) {
+                                allBanned.push({ ip: item.ip, time: item.time, jail: jail.jail });
+                            });
                         });
                         var bannedEl = document.getElementById('banned-count');
                         if (bannedEl) bannedEl.textContent = totalBanned;
@@ -982,11 +984,12 @@
                         if (tbody) {
                             var recent = allBanned.slice(-10).reverse();
                             if (recent.length === 0) {
-                                tbody.innerHTML = '<tr><td colspan="3" class="ss-text-center ss-text-muted">No banned IPs found.</td></tr>';
+                                tbody.innerHTML = '<tr><td colspan="4" class="ss-text-center ss-text-muted">No banned IPs found.</td></tr>';
                             } else {
                                 tbody.innerHTML = recent.map(function (item) {
                                     return '<tr><td><code>' + escapeHtml(item.ip) + '</code></td>' +
                                         '<td><span class="ss-badge ss-badge-warning">' + escapeHtml(item.jail) + '</span></td>' +
+                                        '<td><small class="ss-text-muted">' + escapeHtml(item.time) + '</small></td>' +
                                         '<td><button class="ss-btn ss-btn-xs ss-btn-danger" onclick="SS.unbanIP(\'' +
                                         escapeHtml(item.jail) + '\', \'' + escapeHtml(item.ip) + '\')">Unban</button></td></tr>';
                                 }).join('');
@@ -1055,25 +1058,30 @@
                     if (!container) return;
                     var hasAny = false, html = '';
                     res.data.forEach(function (jail) {
-                        var ips = jail.banned_ips || [];
+                        var ips = jail.banned_ips_with_time || [];
                         if (ips.length === 0) return;
                         hasAny = true;
-                        html += '<div class="ss-jail-group" data-jail="' + escapeHtml(jail.jail) + '"><div class="ss-jail-group-header">&#128274; ' +
-                            escapeHtml(jail.jail) + ' <span class="ss-jail-group-count">' + ips.length + '</span></div><div class="ss-ip-list">';
-                        ips.forEach(function (ip) {
-                            html += '<span class="ss-ip-tag" data-ip="' + escapeHtml(ip) + '"><code>' + escapeHtml(ip) + '</code>' +
-                                '<button class="ss-unban-btn" title="Unban" onclick="SS.unbanIP(\'' + escapeHtml(jail.jail) + '\', \'' + escapeHtml(ip) + '\')">&times;</button></span>';
+                        ips.forEach(function (item) {
+                            html += '<tr class="banned-ip-row" data-ip="' + escapeHtml(item.ip) + '">' +
+                                '<td><code>' + escapeHtml(item.ip) + '</code></td>' +
+                                '<td><span class="ss-badge ss-badge-warning">' + escapeHtml(jail.jail) + '</span></td>' +
+                                '<td><small class="ss-text-muted">' + escapeHtml(item.time) + '</small></td>' +
+                                '<td><button class="ss-btn ss-btn-xs ss-btn-danger" title="Unban" onclick="SS.unbanIP(\'' + escapeHtml(jail.jail) + '\', \'' + escapeHtml(item.ip) + '\')">Unban</button></td></tr>';
                         });
-                        html += '</div></div>';
                     });
-                    container.innerHTML = hasAny ? html : '<p class="ss-no-data">No banned IPs across any jail.</p>';
+                    if (!hasAny) {
+                        container.innerHTML = '<tr><td colspan="4" class="ss-text-center ss-text-muted">No banned IPs across any jail.</td></tr>';
+                    } else {
+                        container.innerHTML = html;
+                    }
                 }).catch(function () { toast('Failed to load banned IPs', 'error'); });
             }
 
             function filterBannedIPs() {
                 var query = (document.getElementById('ip-search').value || '').toLowerCase();
-                document.querySelectorAll('.ss-ip-tag').forEach(function (tag) {
-                    tag.style.display = (tag.getAttribute('data-ip') || '').toLowerCase().indexOf(query) >= 0 ? '' : 'none';
+                document.querySelectorAll('.banned-ip-row').forEach(function (row) {
+                    var ip = (row.getAttribute('data-ip') || '').toLowerCase();
+                    row.style.display = ip.indexOf(query) >= 0 ? '' : 'none';
                 });
             }
 
@@ -1290,6 +1298,64 @@
                 }).catch(function () { toast('Unblock request failed', 'error'); });
             }
 
+            // ═══════════════════════════════════════════════════════════════
+            // Whitelist
+            // ═══════════════════════════════════════════════════════════════
+
+            function loadWhitelist() {
+                apiGet('api/whitelist/').then(function (res) {
+                    if (!res.status) { toast(res.error || 'Error loading whitelist', 'error'); return; }
+                    var tbody = document.getElementById('whitelist-body');
+                    if (!tbody) return;
+                    if (!res.data || res.data.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="4" class="ss-text-center ss-text-muted">No IPs in the whitelist.</td></tr>';
+                        return;
+                    }
+                    tbody.innerHTML = res.data.map(function (ip) {
+                        return '<tr class="whitelist-ip-row" data-ip="' + escapeHtml(ip) + '">' +
+                            '<td><code>' + escapeHtml(ip) + '</code></td>' +
+                            '<td><span class="ss-badge ss-badge-info">All Jails (Global)</span></td>' +
+                            '<td><small class="ss-text-muted">N/A</small></td>' +
+                            '<td><button class="ss-btn ss-btn-xs ss-btn-danger" title="Remove" onclick="SS.removeWhitelistIP(\'' +
+                            escapeHtml(ip) + '\')">Remove</button></td></tr>';
+                    }).join('');
+                }).catch(function () { toast('Failed to load whitelist', 'error'); });
+            }
+
+            function filterWhitelist() {
+                var query = (document.getElementById('whitelist-search').value || '').toLowerCase();
+                document.querySelectorAll('.whitelist-ip-row').forEach(function (row) {
+                    var ip = (row.getAttribute('data-ip') || '').toLowerCase();
+                    row.style.display = ip.indexOf(query) >= 0 ? '' : 'none';
+                });
+            }
+
+            function removeWhitelistIP(ip) {
+                if (!confirm('Remove ' + ip + ' from the whitelist? Fail2ban will be able to ban this IP again.')) return;
+                toast('Removing from whitelist...', 'info');
+                apiPost('api/whitelist/remove/', { ip: ip }).then(function (res) {
+                    toast(res.message || res.error, res.status ? 'success' : 'error');
+                    if (res.status) loadWhitelist();
+                }).catch(function () { toast('Remove request failed', 'error'); });
+            }
+
+            function addWhitelistIP(ip) {
+                toast('Adding to whitelist...', 'info');
+                apiPost('api/whitelist/add/', { ip: ip }).then(function (res) {
+                    toast(res.message || res.error, res.status ? 'success' : 'error');
+                    if (res.status) loadWhitelist();
+                }).catch(function () { toast('Add request failed', 'error'); });
+            }
+
+            function handleWhitelistAdd(e) {
+                e.preventDefault();
+                var ip = document.getElementById('whitelist-ip').value.trim();
+                if (!ip) { toast('Please enter an IP address.', 'error'); return false; }
+                addWhitelistIP(ip);
+                document.getElementById('whitelist-ip').value = '';
+                return false;
+            }
+
             return {
                 refreshOverview: refreshOverview, loadJails: loadJails, viewJail: viewJail,
                 loadBannedIPs: loadBannedIPs, filterBannedIPs: filterBannedIPs,
@@ -1299,7 +1365,10 @@
                 refreshSettings: refreshSettings, closeModal: closeModal, toast: toast,
                 loadGeoIP: loadGeoIP, loadCountries: loadCountries,
                 filterCountries: filterCountries,
-                blockCountry: blockCountry, unblockCountry: unblockCountry
+                blockCountry: blockCountry, unblockCountry: unblockCountry,
+                loadWhitelist: loadWhitelist, filterWhitelist: filterWhitelist,
+                addWhitelistIP: addWhitelistIP, removeWhitelistIP: removeWhitelistIP,
+                handleWhitelistAdd: handleWhitelistAdd
             };
         })();
     </script>

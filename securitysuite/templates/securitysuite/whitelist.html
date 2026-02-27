@@ -21,7 +21,8 @@
         <form onsubmit="return SS.handleWhitelistAdd(event)" class="ss-form-inline">
             <div class="ss-form-group">
                 <label for="whitelist-ip">IP Address</label>
-                <input type="text" id="whitelist-ip" class="ss-input" placeholder="e.g. 192.168.1.100" required>
+                <input type="text" id="whitelist-ip" class="ss-input" placeholder="e.g. 192.168.1.100"
+                    value="{{ client_ip }}" required>
             </div>
             <button type="submit" class="ss-btn ss-btn-primary">
                 Add to Whitelist
@@ -42,9 +43,21 @@
         </div>
     </div>
     <div class="ss-panel-body">
-        <div id="whitelist-container">
-            <p class="ss-no-data">Loading whitelist…</p>
-        </div>
+        <table class="ss-table" id="whitelist-table">
+            <thead>
+                <tr>
+                    <th>IP Address</th>
+                    <th>Jail / Service (Site Proxy)</th>
+                    <th>Ban Date & Time</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="whitelist-body">
+                <tr>
+                    <td colspan="4" class="ss-text-center ss-text-muted">Loading whitelist…</td>
+                </tr>
+            </tbody>
+        </table>
     </div>
 </div>
 {% endblock %}

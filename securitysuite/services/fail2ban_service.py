@@ -280,7 +280,7 @@ def get_whitelist():
                     parts = line.split('=', 1)
                     if len(parts) > 1:
                         ips = parts[1].strip().split()
-                        return [ip for ip in ips if ip not in ('127.0.0.1/8', '::1')]
+                        return [ip for ip in ips if ip not in ('127.0.0.1/8', '::1') and ip.strip()]
     except Exception as exc:
         logger.error('Failed to read whitelist: %s', exc)
     return []
@@ -304,7 +304,12 @@ def add_to_whitelist(ip_str):
         found = False
         for i, line in enumerate(lines):
             if line.strip().startswith('ignoreip'):
-                lines[i] = line.rstrip() + f" {ip_str}\n"
+                # Avoid simply appending if there's no space before
+                existing = line.strip()
+                if not existing.endswith(' '):
+                    lines[i] = existing + f" {ip_str}\n"
+                else:
+                    lines[i] = existing + f"{ip_str}\n"
                 found = True
                 break
                 

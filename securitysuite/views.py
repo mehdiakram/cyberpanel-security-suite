@@ -296,7 +296,14 @@ def api_country_unblock(request):
 
 @admin_required
 def whitelist_page(request):
-    return render(request, 'securitysuite/whitelist.html', {'active_page': 'whitelist'})
+    # Try to get the real IP if behind a proxy, otherwise fallback to REMOTE_ADDR
+    client_ip = request.META.get('HTTP_X_FORWARDED_FOR')
+    if client_ip:
+        client_ip = client_ip.split(',')[0].strip()
+    else:
+        client_ip = request.META.get('REMOTE_ADDR', '')
+        
+    return render(request, 'securitysuite/whitelist.html', {'active_page': 'whitelist', 'client_ip': client_ip})
 
 @admin_required
 @rate_limit(max_requests=30, window_seconds=60)

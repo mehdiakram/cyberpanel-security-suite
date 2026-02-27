@@ -302,14 +302,11 @@ def _write_jail_local_lines(lines):
             
             if not ok:
                 # Absolute last resort fallback: force local write anyway
-                if platform.system() == 'Windows' or os.name == 'nt' or not os.path.exists('/etc'):
+                if platform.system() == 'Windows' or os.name == 'nt' or not os.path.exists('/etc') or 'laragon' in str(__file__).lower():
                     fallback_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'jail.local.test')
                     try:
                         with open(fallback_path, 'w') as fb:
                             fb.writelines(lines)
-                        # Switch the global constant for the rest of this request
-                        global JAIL_LOCAL_PATH
-                        JAIL_LOCAL_PATH = fallback_path
                         return True, ''
                     except Exception as fallback_e:
                         return False, f'Failed to write {JAIL_LOCAL_PATH}. {output}. Fallback also failed: {fallback_e}'
@@ -321,13 +318,11 @@ def _write_jail_local_lines(lines):
             return True, ''
         except Exception as e:
             # Absolute last resort fallback
-            if platform.system() == 'Windows' or os.name == 'nt' or not os.path.exists('/etc'):
+            if platform.system() == 'Windows' or os.name == 'nt' or not os.path.exists('/etc') or 'laragon' in str(__file__).lower():
                 fallback_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'jail.local.test')
                 try:
                     with open(fallback_path, 'w') as fb:
                         fb.writelines(lines)
-                    global JAIL_LOCAL_PATH
-                    JAIL_LOCAL_PATH = fallback_path
                     return True, ''
                 except Exception:
                     pass

@@ -295,42 +295,64 @@ def add_to_whitelist(ip_str):
         return True, 'IP is already whitelisted.'
         
     try:
+        # Create jail.local if it doesn't exist
         if not os.path.isfile(JAIL_LOCAL_PATH):
-            return False, 'jail.local not found.'
-            
-        with open(JAIL_LOCAL_PATH, 'r') as f:
-            lines = f.readlines()
-            
-        found = False
-        for i, line in enumerate(lines):
-            if line.strip().startswith('ignoreip'):
-                # Avoid simply appending if there's no space before
-                existing = line.strip()
-                if not existing.endswith(' '):
-                    lines[i] = existing + f" {ip_str}\n"
-                else:
-                    lines[i] = existing + f"{ip_str}\n"
-                found = True
-                break
+            try:
+                os.makedirs(os.path.dirname(JAIL_LOCAL_PATH), exist_ok=True)
+                with open(JAIL_LOCAL_PATH, 'w') as f:
+                    f.write(f"[DEFAULT]\nignoreip = 127.0.0.1/8 ::1 {ip_str}\n")
+                logger.info('Created jail.local with whitelist IP: %s', ip_str)
+            except PermissionError:
+                return False, 'Permission denied: cannot write to jail.local.'
+            except Exception as exc:
+                return False, f'Cannot create jail.local: {exc}'
+        else:
+            with open(JAIL_LOCAL_PATH, 'r') as f:
+                lines = f.readlines()
                 
-        if not found:
-            # Add under [DEFAULT] if exists, else at top
+            found = False
             for i, line in enumerate(lines):
-                if line.strip() == '[DEFAULT]':
-                    lines.insert(i + 1, f"ignoreip = 127.0.0.1/8 ::1 {ip_str}\n")
+                if line.strip().startswith('ignoreip'):
+                    existing = line.strip()
+                    if not existing.endswith(' '):
+                        lines[i] = existing + f" {ip_str}\n"
+                    else:
+                        lines[i] = existing + f"{ip_str}\n"
                     found = True
                     break
+                    
             if not found:
-                lines.insert(0, f"[DEFAULT]\nignoreip = 127.0.0.1/8 ::1 {ip_str}\n")
+                # Add under [DEFAULT] if exists, else at top
+                for i, line in enumerate(lines):
+                    if line.strip() == '[DEFAULT]':
+                        lines.insert(i + 1, f"ignoreip = 127.0.0.1/8 ::1 {ip_str}\n")
+                        found = True
+                        break
+                if not found:
+                    lines.insert(0, f"[DEFAULT]\nignoreip = 127.0.0.1/8 ::1 {ip_str}\n")
 
-        with open(JAIL_LOCAL_PATH, 'w') as f:
-            f.writelines(lines)
+            try:
+                with open(JAIL_LOCAL_PATH, 'w') as f:
+                    f.writelines(lines)
+            except PermissionError:
+                return False, 'Permission denied: cannot write to jail.local.'
             
-        reload()
+        # Reload fail2ban (non-fatal if it fails)
+        try:
+            reload()
+        except Exception:
+            logger.warning('Fail2ban reload failed after whitelist update, but config was saved.')
+            
+        # Sync iptables ACCEPT rules for country block bypass
+        try:
+            from securitysuite.services import country_block_service
+            country_block_service.sync_firewall_whitelist()
+        except Exception:
+            pass
         return True, f'{ip_str} has been whitelisted.'
     except Exception as exc:
         logger.exception('Failed to add to whitelist: %s', exc)
-        return False, 'Failed to update configuration.'
+        return False, f'Failed to update configuration: {exc}'
 
 def remove_from_whitelist(ip_str):
     """Remove an IP from the ignoreip list in jail.local."""
@@ -358,6 +380,12 @@ def remove_from_whitelist(ip_str):
             f.writelines(lines)
             
         reload()
+        # Sync iptables ACCEPT rules for country block bypass
+        try:
+            from securitysuite.services import country_block_service
+            country_block_service.sync_firewall_whitelist()
+        except Exception:
+            pass
         return True, f'{ip_str} has been removed from whitelist.'
     except Exception as exc:
         logger.exception('Failed to remove from whitelist: %s', exc)

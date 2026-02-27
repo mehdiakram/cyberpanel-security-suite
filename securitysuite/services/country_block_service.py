@@ -17,6 +17,7 @@ _PERSIST_FILE = '/etc/fail2ban/securitysuite_blocked_countries.json'
 _CIDR_CACHE_DIR = '/tmp/securitysuite_cidrs'
 _IPSET_PREFIX = 'ss_block_'
 _lock = threading.Lock()
+_WHITELIST_COMMENT = 'ss_whitelist'
 
 # Full country list for UI
 COUNTRY_LIST = [
@@ -126,6 +127,59 @@ def _download_cidr(country_code):
         return []
 
 
+def _get_whitelisted_ips():
+    """Get whitelisted IPs from fail2ban_service (lazy import to avoid circular)."""
+    try:
+        from securitysuite.services import fail2ban_service
+        return fail2ban_service.get_whitelist()
+    except Exception:
+        return []
+
+
+def _apply_whitelist_accept_rules():
+    """Insert iptables ACCEPT rules for all whitelisted IPs at the top of INPUT chain."""
+    # First remove any existing whitelist rules
+    _remove_whitelist_accept_rules()
+    
+    whitelist = _get_whitelisted_ips()
+    for ip in whitelist:
+        _run(['iptables', '-I', 'INPUT', '1', '-s', ip, '-j', 'ACCEPT',
+              '-m', 'comment', '--comment', _WHITELIST_COMMENT])
+    if whitelist:
+        logger.info('Applied firewall ACCEPT rules for %d whitelisted IPs', len(whitelist))
+
+
+def _remove_whitelist_accept_rules():
+    """Remove all whitelist ACCEPT rules from iptables."""
+    # List all INPUT rules, find ones with our comment, and delete them
+    while True:
+        ok, output = _run(['iptables', '-S', 'INPUT'])
+        if not ok:
+            break
+        found = False
+        for line in output.splitlines():
+            if _WHITELIST_COMMENT in line and '-j ACCEPT' in line:
+                # Parse the rule and delete it — convert -A to -D
+                parts = line.replace('-A INPUT', '-D INPUT').split()
+                _run(['iptables'] + parts)
+                found = True
+                break  # restart loop since line numbers shifted
+        if not found:
+            break
+
+
+def sync_firewall_whitelist():
+    """
+    Re-sync iptables ACCEPT rules for whitelisted IPs.
+    Called by fail2ban_service when the whitelist changes.
+    Only applies if there are active country blocks.
+    """
+    blocked = get_blocked_countries()
+    if blocked:
+        _apply_whitelist_accept_rules()
+        logger.info('Synced firewall whitelist rules (active blocks: %s)', ', '.join(blocked))
+
+
 def block_country(country_code):
     """
     Block all traffic from a country.
@@ -163,8 +217,11 @@ def block_country(country_code):
             if ok2:
                 added += 1
 
-        # Add iptables rule
-        ok, msg = _run(['iptables', '-I', 'INPUT', '-m', 'set', '--match-set', setname, 'src', '-j', 'DROP'])
+        # Apply whitelist ACCEPT rules BEFORE the DROP rule
+        _apply_whitelist_accept_rules()
+
+        # Add iptables DROP rule
+        ok, msg = _run(['iptables', '-A', 'INPUT', '-m', 'set', '--match-set', setname, 'src', '-j', 'DROP'])
         if not ok:
             _run(['ipset', 'destroy', setname])
             return False, f'Failed to add iptables rule: {msg}'

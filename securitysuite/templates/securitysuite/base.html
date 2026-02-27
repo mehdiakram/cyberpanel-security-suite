@@ -984,19 +984,49 @@
                         if (tbody) {
                             var recent = allBanned.slice(-10).reverse();
                             if (recent.length === 0) {
-                                tbody.innerHTML = '<tr><td colspan="4" class="ss-text-center ss-text-muted">No banned IPs found.</td></tr>';
+                                tbody.innerHTML = '<tr><td colspan="5" class="ss-text-center ss-text-muted">No banned IPs found.</td></tr>';
                             } else {
                                 tbody.innerHTML = recent.map(function (item) {
                                     return '<tr><td><code>' + escapeHtml(item.ip) + '</code></td>' +
+                                        '<td class="geo-cell" data-geo-ip="' + escapeHtml(item.ip) + '"><small class="ss-text-muted">...</small></td>' +
                                         '<td><span class="ss-badge ss-badge-warning">' + escapeHtml(item.jail) + '</span></td>' +
                                         '<td><small class="ss-text-muted">' + escapeHtml(item.time) + '</small></td>' +
                                         '<td><button class="ss-btn ss-btn-xs ss-btn-danger" onclick="SS.unbanIP(\'' +
                                         escapeHtml(item.jail) + '\', \'' + escapeHtml(item.ip) + '\')">Unban</button></td></tr>';
                                 }).join('');
+                                _enrichGeoIPCells();
                             }
                         }
                     });
                 }).catch(function () { toast('Failed to load status', 'error'); });
+            }
+
+            // ── GeoIP cell enrichment helper ────────────────────────────────
+            function _enrichGeoIPCells() {
+                var cells = document.querySelectorAll('.geo-cell[data-geo-ip]');
+                if (cells.length === 0) return;
+                apiGet('api/geoip/').then(function (res) {
+                    if (!res.status || !res.data) return;
+                    // Build a map: ip -> {country, countryCode}
+                    var ipMap = {};
+                    (res.data.countries || []).forEach(function (c) {
+                        (c.ips || []).forEach(function (ipObj) {
+                            ipMap[ipObj.ip] = { country: c.country, code: c.countryCode };
+                        });
+                    });
+                    cells.forEach(function (cell) {
+                        var ip = cell.getAttribute('data-geo-ip');
+                        var info = ipMap[ip];
+                        if (info) {
+                            var flag = getFlag(info.code);
+                            cell.innerHTML = flag + ' <small>' + escapeHtml(info.country) + '</small>';
+                        } else {
+                            cell.innerHTML = '<small class="ss-text-muted">Unknown</small>';
+                        }
+                    });
+                }).catch(function () {
+                    // silently fail — country column will just stay as "..."
+                });
             }
 
             function loadJails() {
@@ -1064,15 +1094,17 @@
                         ips.forEach(function (item) {
                             html += '<tr class="banned-ip-row" data-ip="' + escapeHtml(item.ip) + '">' +
                                 '<td><code>' + escapeHtml(item.ip) + '</code></td>' +
+                                '<td class="geo-cell" data-geo-ip="' + escapeHtml(item.ip) + '"><small class="ss-text-muted">...</small></td>' +
                                 '<td><span class="ss-badge ss-badge-warning">' + escapeHtml(jail.jail) + '</span></td>' +
                                 '<td><small class="ss-text-muted">' + escapeHtml(item.time) + '</small></td>' +
                                 '<td><button class="ss-btn ss-btn-xs ss-btn-danger" title="Unban" onclick="SS.unbanIP(\'' + escapeHtml(jail.jail) + '\', \'' + escapeHtml(item.ip) + '\')">Unban</button></td></tr>';
                         });
                     });
                     if (!hasAny) {
-                        container.innerHTML = '<tr><td colspan="4" class="ss-text-center ss-text-muted">No banned IPs across any jail.</td></tr>';
+                        container.innerHTML = '<tr><td colspan="5" class="ss-text-center ss-text-muted">No banned IPs across any jail.</td></tr>';
                     } else {
                         container.innerHTML = html;
+                        _enrichGeoIPCells();
                     }
                 }).catch(function () { toast('Failed to load banned IPs', 'error'); });
             }

@@ -60,7 +60,7 @@ def lookup_ip(ip_str):
 
     try:
         url = API_SINGLE.replace('{ip}', ip_str)
-        req = Request(url, headers={'User-Agent': 'CyberPanel-SecuritySuite/1.6'})
+        req = Request(url, headers={'User-Agent': 'CyberPanel-SecuritySuite/1.8'})
         resp = urlopen(req, timeout=5)
         data = json.loads(resp.read().decode('utf-8'))
 

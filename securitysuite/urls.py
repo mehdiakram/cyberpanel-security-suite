@@ -17,6 +17,7 @@ urlpatterns = [
     path('settings/', views.settings_page, name='settings'),
     path('geoip/', views.geoip_page, name='geoip'),
     path('country-block/', views.country_block_page, name='country_block'),
+    path('whitelist/', views.whitelist_page, name='whitelist'),
 
     # ── AJAX API endpoints ────────────────────────────────────────────────
     path('api/status/', views.api_status, name='api_status'),
@@ -32,4 +33,9 @@ urlpatterns = [
     path('api/countries/', views.api_countries, name='api_countries'),
     path('api/country/block/', views.api_country_block, name='api_country_block'),
     path('api/country/unblock/', views.api_country_unblock, name='api_country_unblock'),
+
+    # ── Whitelist API ─────────────────────────────────────────────────────
+    path('api/whitelist/', views.api_whitelist, name='api_whitelist'),
+    path('api/whitelist/add/', views.api_whitelist_add, name='api_whitelist_add'),
+    path('api/whitelist/remove/', views.api_whitelist_remove, name='api_whitelist_remove'),
 ]

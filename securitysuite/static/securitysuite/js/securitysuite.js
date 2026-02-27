@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   CyberPanel Security Suite — JavaScript v1.7
+   CyberPanel Security Suite — JavaScript v1.8
    AJAX utilities for Fail2ban management. No external CDN dependencies.
    ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -319,6 +319,66 @@ var SS = (function () {
         }
     }
 
+    // ── Whitelist ─────────────────────────────────────────────────────────
+    function loadWhitelist() {
+        apiGet('api/whitelist/').then(function (res) {
+            if (!res.status) { toast(res.error || 'Error loading whitelist', 'error'); return; }
+            var tbody = document.getElementById('whitelist-body');
+            if (!tbody) return;
+
+            if (!res.data || res.data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="ss-text-center ss-text-muted">No IPs in the whitelist.</td></tr>';
+                return;
+            }
+
+            // Using dummy values for jail and time since Whitelist (ignoreip) is global
+            tbody.innerHTML = res.data.map(function (ip) {
+                return '<tr class="whitelist-ip-row" data-ip="' + escapeHtml(ip) + '">' +
+                    '<td><code>' + escapeHtml(ip) + '</code></td>' +
+                    '<td><span class="ss-badge ss-badge-info">All Jails (Global)</span></td>' +
+                    '<td><small class="ss-text-muted">N/A</small></td>' +
+                    '<td><button class="ss-btn ss-btn-xs ss-btn-danger" title="Remove from Whitelist" onclick="SS.removeWhitelistIP(\'' +
+                    escapeHtml(ip) + '\')">Remove</button></td>' +
+                    '</tr>';
+            }).join('');
+        }).catch(function () { toast('Failed to load whitelist', 'error'); });
+    }
+
+    function filterWhitelist() {
+        var query = (document.getElementById('whitelist-search').value || '').toLowerCase();
+        var rows = document.querySelectorAll('.whitelist-ip-row');
+        rows.forEach(function (row) {
+            var ip = (row.getAttribute('data-ip') || '').toLowerCase();
+            row.style.display = ip.indexOf(query) >= 0 ? '' : 'none';
+        });
+    }
+
+    function removeWhitelistIP(ip) {
+        if (!confirm('Remove ' + ip + ' from the whitelist? Fail2ban will be able to ban this IP again.')) return;
+        toast('Removing from whitelist...', 'info');
+        apiPost('api/whitelist/remove/', { ip: ip }).then(function (res) {
+            toast(res.message || res.error, res.status ? 'success' : 'error');
+            if (res.status) loadWhitelist();
+        }).catch(function () { toast('Remove request failed', 'error'); });
+    }
+
+    function addWhitelistIP(ip) {
+        toast('Adding to whitelist...', 'info');
+        apiPost('api/whitelist/add/', { ip: ip }).then(function (res) {
+            toast(res.message || res.error, res.status ? 'success' : 'error');
+            if (res.status) loadWhitelist();
+        }).catch(function () { toast('Add request failed', 'error'); });
+    }
+
+    function handleWhitelistAdd(e) {
+        e.preventDefault();
+        var ip = document.getElementById('whitelist-ip').value.trim();
+        if (!ip) { toast('Please enter an IP address.', 'error'); return false; }
+        addWhitelistIP(ip);
+        document.getElementById('whitelist-ip').value = '';
+        return false;
+    }
+
     // ── Settings ──────────────────────────────────────────────────────────
     function refreshSettings() {
         apiGet('api/status/').then(function (res) {
@@ -353,6 +413,11 @@ var SS = (function () {
         loadLogs: loadLogs,
         toggleAutoRefresh: toggleAutoRefresh,
         refreshSettings: refreshSettings,
+        loadWhitelist: loadWhitelist,
+        filterWhitelist: filterWhitelist,
+        addWhitelistIP: addWhitelistIP,
+        removeWhitelistIP: removeWhitelistIP,
+        handleWhitelistAdd: handleWhitelistAdd,
         closeModal: closeModal,
         toast: toast
     };

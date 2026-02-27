@@ -1,5 +1,5 @@
 """
-CyberPanel Security Suite — Views (v1.7)
+CyberPanel Security Suite — Views (v1.8)
 Page views and AJAX API endpoints for Fail2ban, GeoIP, and Country Blocking.
 All views require admin access and include CSRF protection.
 """
@@ -288,4 +288,62 @@ def api_country_unblock(request):
         return JsonResponse({'status': False, 'error': 'Invalid JSON.'}, status=400)
     except Exception as exc:
         logger.exception('api_country_unblock error: %s', exc)
+        return JsonResponse({'status': False, 'error': str(exc)}, status=500)
+
+# ═══════════════════════════════════════════════════════════════════════════
+# AJAX API — Whitelist
+# ═══════════════════════════════════════════════════════════════════════════
+
+@admin_required
+def whitelist_page(request):
+    return render(request, 'securitysuite/whitelist.html', {'active_page': 'whitelist'})
+
+@admin_required
+@rate_limit(max_requests=30, window_seconds=60)
+@require_GET
+def api_whitelist(request):
+    """Return list of all whitelisted IPs."""
+    try:
+        data = fail2ban_service.get_whitelist()
+        return JsonResponse({'status': True, 'data': data})
+    except Exception as exc:
+        logger.exception('api_whitelist error: %s', exc)
+        return JsonResponse({'status': False, 'error': str(exc)}, status=500)
+
+@admin_required
+@rate_limit(max_requests=10, window_seconds=60)
+@csrf_protect
+@require_POST
+def api_whitelist_add(request):
+    """Add an IP to the whitelist."""
+    try:
+        body = json.loads(request.body)
+        ip = body.get('ip', '').strip()
+        if not ip:
+            return JsonResponse({'status': False, 'error': 'IP address is required.'}, status=400)
+        ok, msg = fail2ban_service.add_to_whitelist(ip)
+        return JsonResponse({'status': ok, 'message': msg})
+    except json.JSONDecodeError:
+        return JsonResponse({'status': False, 'error': 'Invalid JSON.'}, status=400)
+    except Exception as exc:
+        logger.exception('api_whitelist_add error: %s', exc)
+        return JsonResponse({'status': False, 'error': str(exc)}, status=500)
+
+@admin_required
+@rate_limit(max_requests=10, window_seconds=60)
+@csrf_protect
+@require_POST
+def api_whitelist_remove(request):
+    """Remove an IP from the whitelist."""
+    try:
+        body = json.loads(request.body)
+        ip = body.get('ip', '').strip()
+        if not ip:
+            return JsonResponse({'status': False, 'error': 'IP address is required.'}, status=400)
+        ok, msg = fail2ban_service.remove_from_whitelist(ip)
+        return JsonResponse({'status': ok, 'message': msg})
+    except json.JSONDecodeError:
+        return JsonResponse({'status': False, 'error': 'Invalid JSON.'}, status=400)
+    except Exception as exc:
+        logger.exception('api_whitelist_remove error: %s', exc)
         return JsonResponse({'status': False, 'error': str(exc)}, status=500)

@@ -263,6 +263,103 @@ def restart_service():
 
 
 # ---------------------------------------------------------------------------
+# Whitelist (ignoreip)
+# ---------------------------------------------------------------------------
+
+JAIL_LOCAL_PATH = '/etc/fail2ban/jail.local'
+
+def get_whitelist():
+    """Return a list of whitelisted IPs from jail.local."""
+    if not os.path.isfile(JAIL_LOCAL_PATH):
+        return []
+    try:
+        with open(JAIL_LOCAL_PATH, 'r') as f:
+            for line in f:
+                if line.strip().startswith('ignoreip'):
+                    # ignoreip = 127.0.0.1/8 ::1 103.65.135.193
+                    parts = line.split('=', 1)
+                    if len(parts) > 1:
+                        ips = parts[1].strip().split()
+                        return [ip for ip in ips if ip not in ('127.0.0.1/8', '::1')]
+    except Exception as exc:
+        logger.error('Failed to read whitelist: %s', exc)
+    return []
+
+def add_to_whitelist(ip_str):
+    """Add an IP to the ignoreip list in jail.local."""
+    if not validate_ip(ip_str):
+        return False, 'Invalid IP address.'
+        
+    current = get_whitelist()
+    if ip_str in current:
+        return True, 'IP is already whitelisted.'
+        
+    try:
+        if not os.path.isfile(JAIL_LOCAL_PATH):
+            return False, 'jail.local not found.'
+            
+        with open(JAIL_LOCAL_PATH, 'r') as f:
+            lines = f.readlines()
+            
+        found = False
+        for i, line in enumerate(lines):
+            if line.strip().startswith('ignoreip'):
+                lines[i] = line.rstrip() + f" {ip_str}\n"
+                found = True
+                break
+                
+        if not found:
+            # Add under [DEFAULT] if exists, else at top
+            for i, line in enumerate(lines):
+                if line.strip() == '[DEFAULT]':
+                    lines.insert(i + 1, f"ignoreip = 127.0.0.1/8 ::1 {ip_str}\n")
+                    found = True
+                    break
+            if not found:
+                lines.insert(0, f"[DEFAULT]\nignoreip = 127.0.0.1/8 ::1 {ip_str}\n")
+
+        with open(JAIL_LOCAL_PATH, 'w') as f:
+            f.writelines(lines)
+            
+        reload()
+        return True, f'{ip_str} has been whitelisted.'
+    except Exception as exc:
+        logger.exception('Failed to add to whitelist: %s', exc)
+        return False, 'Failed to update configuration.'
+
+def remove_from_whitelist(ip_str):
+    """Remove an IP from the ignoreip list in jail.local."""
+    if not validate_ip(ip_str):
+        return False, 'Invalid IP address.'
+        
+    try:
+        if not os.path.isfile(JAIL_LOCAL_PATH):
+            return False, 'jail.local not found.'
+            
+        with open(JAIL_LOCAL_PATH, 'r') as f:
+            lines = f.readlines()
+            
+        for i, line in enumerate(lines):
+            if line.strip().startswith('ignoreip'):
+                parts = line.split('=', 1)
+                if len(parts) > 1:
+                    ips = parts[1].strip().split()
+                    if ip_str in ips:
+                        ips.remove(ip_str)
+                        lines[i] = f"{parts[0]}= {' '.join(ips)}\n"
+                break
+                
+        with open(JAIL_LOCAL_PATH, 'w') as f:
+            f.writelines(lines)
+            
+        reload()
+        return True, f'{ip_str} has been removed from whitelist.'
+    except Exception as exc:
+        logger.exception('Failed to remove from whitelist: %s', exc)
+        return False, 'Failed to update configuration.'
+
+
+# ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 

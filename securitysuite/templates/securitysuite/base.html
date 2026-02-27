@@ -8,7 +8,7 @@
     <title>{% block title %}Security Suite{% endblock %} — CyberPanel</title>
     <style>
         /* ═══════════════════════════════════════════════════════════════════════════
-   CyberPanel Security Suite — Stylesheet v1.7
+   CyberPanel Security Suite — Stylesheet v1.8
    ═══════════════════════════════════════════════════════════════════════════ */
         :root {
             --ss-primary: #3b82f6;
@@ -837,7 +837,7 @@
             <div class="ss-sidebar-header">
                 <span class="ss-logo">&#128737;</span>
                 <h2>Security Suite</h2>
-                <span class="ss-version">v1.6</span>
+                <span class="ss-version">v1.8</span>
             </div>
             <nav class="ss-nav">
                 <a href="/securitysuite/" class="ss-nav-item {% if active_page == 'overview' %}active{% endif %}">
@@ -849,6 +849,10 @@
                 <a href="/securitysuite/banned-ips/"
                     class="ss-nav-item {% if active_page == 'banned_ips' %}active{% endif %}">
                     <span class="ss-nav-icon">&#128683;</span> Banned IPs
+                </a>
+                <a href="/securitysuite/whitelist/"
+                    class="ss-nav-item {% if active_page == 'whitelist' %}active{% endif %}">
+                    <span class="ss-nav-icon">&#9989;</span> Whitelist
                 </a>
                 <a href="/securitysuite/geoip/" class="ss-nav-item {% if active_page == 'geoip' %}active{% endif %}">
                     <span class="ss-nav-icon">&#127758;</span> GeoIP Analytics

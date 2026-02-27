@@ -267,8 +267,9 @@ def restart_service():
 # ---------------------------------------------------------------------------
 
 import platform
+import sys
 
-if os.name == 'nt' or 'laragon' in os.path.abspath(__file__).lower():
+if sys.platform == 'win32' or 'laragon' in os.path.abspath(__file__).lower() or os.name == 'nt':
     # Use a dummy local path for Windows / Laragon testing
     JAIL_LOCAL_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'jail.local.test')
 else:

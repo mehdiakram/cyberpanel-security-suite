@@ -318,7 +318,7 @@ def api_whitelist(request):
         return JsonResponse({'status': False, 'error': str(exc)}, status=500)
 
 @admin_required
-@rate_limit(max_requests=10, window_seconds=60)
+@rate_limit(max_requests=100, window_seconds=60)
 @csrf_protect
 @require_POST
 def api_whitelist_add(request):

@@ -209,8 +209,10 @@ fi
 # ── Configure sudoers for CyberPanel user ────────────────────────────────
 echo "→ Configuring passwordless sudo for CyberPanel user…"
 cat > /etc/sudoers.d/cyberpanel-security-suite << 'SUDOEOF'
-# Allows CyberPanel to manage Fail2ban securely without password
+# Allows CyberPanel to manage Fail2ban and Security Suite securely without password
 cyberpanel ALL=(root) NOPASSWD: /usr/bin/fail2ban-client, /usr/local/bin/fail2ban-client, /usr/sbin/fail2ban-client, /usr/bin/tail -n * /var/log/fail2ban.log
+# Allow writing jail.local for whitelist management
+cyberpanel ALL=(root) NOPASSWD: /bin/cp, /usr/bin/cp, /bin/bash, /usr/bin/bash, /bin/chmod, /usr/bin/chmod, /bin/mkdir, /usr/bin/mkdir, /usr/bin/tee
 SUDOEOF
 chmod 0440 /etc/sudoers.d/cyberpanel-security-suite
 echo "  ✓ Added /etc/sudoers.d/cyberpanel-security-suite"

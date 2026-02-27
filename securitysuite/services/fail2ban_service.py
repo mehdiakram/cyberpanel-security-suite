@@ -262,71 +262,75 @@ def restart_service():
     return False, output or 'Restart failed.'
 
 
-# ---------------------------------------------------------------------------
-# Whitelist (ignoreip)
-# ---------------------------------------------------------------------------
-
-import platform
-import sys
-
-# Test for Windows or missing /etc directory
-if getattr(sys, 'platform', '').startswith('win') or os.name == 'nt' or not os.path.exists('/etc') or 'laragon' in str(__file__).lower():
-    # Use a dummy local path for Windows / Laragon testing
-    JAIL_LOCAL_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'jail.local.test')
-else:
-    JAIL_LOCAL_PATH = '/etc/fail2ban/jail.local'
+JAIL_LOCAL_PATH = '/etc/fail2ban/jail.local'
 
 def _write_jail_local_lines(lines):
+    """
+    Write lines to jail.local. Uses sudo tee to handle permission issues
+    since lscpd runs as a non-root user.
+    """
+    content = ''.join(lines)
     try:
+        # First try direct write (works if running as root)
         os.makedirs(os.path.dirname(JAIL_LOCAL_PATH), exist_ok=True)
         with open(JAIL_LOCAL_PATH, 'w') as f:
-            f.writelines(lines)
+            f.write(content)
         return True, ''
     except PermissionError:
-        import tempfile
-        try:
-            dir_path = os.path.dirname(JAIL_LOCAL_PATH)
-            _run(['mkdir', '-p', dir_path])
-            
-            with tempfile.NamedTemporaryFile('w', delete=False) as tf:
-                tf.writelines(lines)
-                tmp_path = tf.name
-            
-            ok, output = _run(['cp', tmp_path, JAIL_LOCAL_PATH])
-            if os.path.exists(tmp_path):
-                try:
-                    os.unlink(tmp_path)
-                except Exception:
-                    pass
-            
-            
-            if not ok:
-                # Absolute last resort fallback: force local write anyway
-                if platform.system() == 'Windows' or os.name == 'nt' or not os.path.exists('/etc') or 'laragon' in str(__file__).lower():
-                    fallback_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'jail.local.test')
-                    try:
-                        with open(fallback_path, 'w') as fb:
-                            fb.writelines(lines)
-                        return True, ''
-                    except Exception as fallback_e:
-                        return False, f'Failed to write {JAIL_LOCAL_PATH}. {output}. Fallback also failed: {fallback_e}'
+        pass
 
-                msg = output if output else 'Permission denied: cannot write to jail.local.'
-                return False, f'Failed to write {JAIL_LOCAL_PATH}. {msg}'
-            
+    # Use sudo tee to write as root (lscpd user needs this)
+    try:
+        import tempfile
+        with tempfile.NamedTemporaryFile('w', suffix='.conf', delete=False) as tf:
+            tf.write(content)
+            tmp_path = tf.name
+
+        # Ensure directory exists
+        _run(['mkdir', '-p', os.path.dirname(JAIL_LOCAL_PATH)])
+
+        # Use sudo tee to write the file (sudo is prepended by _run)
+        env = os.environ.copy()
+        env['PATH'] = '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:' + env.get('PATH', '')
+        result = subprocess.run(
+            ['sudo', 'bash', '-c', f'cat {tmp_path} > {JAIL_LOCAL_PATH}'],
+            capture_output=True, text=True, timeout=_CMD_TIMEOUT, env=env
+        )
+
+        # Clean up temp file
+        try:
+            os.unlink(tmp_path)
+        except Exception:
+            pass
+
+        if result.returncode == 0:
+            # Set proper permissions
             _run(['chmod', '644', JAIL_LOCAL_PATH])
             return True, ''
-        except Exception as e:
-            # Absolute last resort fallback
-            if platform.system() == 'Windows' or os.name == 'nt' or not os.path.exists('/etc') or 'laragon' in str(__file__).lower():
-                fallback_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'jail.local.test')
-                try:
-                    with open(fallback_path, 'w') as fb:
-                        fb.writelines(lines)
-                    return True, ''
-                except Exception:
-                    pass
-            return False, f'Error writing config: {e}'
+
+        # If bash -c failed, try sudo tee approach
+        with tempfile.NamedTemporaryFile('w', suffix='.conf', delete=False) as tf2:
+            tf2.write(content)
+            tmp_path2 = tf2.name
+
+        result2 = subprocess.run(
+            ['sudo', 'cp', tmp_path2, JAIL_LOCAL_PATH],
+            capture_output=True, text=True, timeout=_CMD_TIMEOUT, env=env
+        )
+
+        try:
+            os.unlink(tmp_path2)
+        except Exception:
+            pass
+
+        if result2.returncode == 0:
+            _run(['chmod', '644', JAIL_LOCAL_PATH])
+            return True, ''
+
+        return False, f'Permission denied: cannot write to jail.local. Ensure sudoers allows cp/bash for the web server user.'
+    except Exception as e:
+        logger.exception('Failed to write jail.local: %s', e)
+        return False, f'Error writing config: {e}'
 
 
 def get_whitelist():

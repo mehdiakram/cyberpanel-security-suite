@@ -268,6 +268,35 @@ def restart_service():
 
 JAIL_LOCAL_PATH = '/etc/fail2ban/jail.local'
 
+def _write_jail_local_lines(lines):
+    try:
+        os.makedirs(os.path.dirname(JAIL_LOCAL_PATH), exist_ok=True)
+        with open(JAIL_LOCAL_PATH, 'w') as f:
+            f.writelines(lines)
+        return True, ''
+    except PermissionError:
+        import tempfile
+        try:
+            dir_path = os.path.dirname(JAIL_LOCAL_PATH)
+            _run(['mkdir', '-p', dir_path])
+            
+            with tempfile.NamedTemporaryFile('w', delete=False) as tf:
+                tf.writelines(lines)
+                tmp_path = tf.name
+            
+            ok, output = _run(['cp', tmp_path, JAIL_LOCAL_PATH])
+            if os.path.exists(tmp_path):
+                os.unlink(tmp_path)
+            
+            if not ok:
+                return False, 'Permission denied: cannot write to jail.local.'
+            
+            _run(['chmod', '644', JAIL_LOCAL_PATH])
+            return True, ''
+        except Exception as e:
+            return False, f'Failed via sudo: {e}'
+
+
 def get_whitelist():
     """Return a list of whitelisted IPs from jail.local."""
     if not os.path.isfile(JAIL_LOCAL_PATH):
@@ -297,15 +326,11 @@ def add_to_whitelist(ip_str):
     try:
         # Create jail.local if it doesn't exist
         if not os.path.isfile(JAIL_LOCAL_PATH):
-            try:
-                os.makedirs(os.path.dirname(JAIL_LOCAL_PATH), exist_ok=True)
-                with open(JAIL_LOCAL_PATH, 'w') as f:
-                    f.write(f"[DEFAULT]\nignoreip = 127.0.0.1/8 ::1 {ip_str}\n")
-                logger.info('Created jail.local with whitelist IP: %s', ip_str)
-            except PermissionError:
-                return False, 'Permission denied: cannot write to jail.local.'
-            except Exception as exc:
-                return False, f'Cannot create jail.local: {exc}'
+            lines = [f"[DEFAULT]\n", f"ignoreip = 127.0.0.1/8 ::1 {ip_str}\n"]
+            ok, msg = _write_jail_local_lines(lines)
+            if not ok:
+                return False, msg
+            logger.info('Created jail.local with whitelist IP: %s', ip_str)
         else:
             with open(JAIL_LOCAL_PATH, 'r') as f:
                 lines = f.readlines()
@@ -331,11 +356,9 @@ def add_to_whitelist(ip_str):
                 if not found:
                     lines.insert(0, f"[DEFAULT]\nignoreip = 127.0.0.1/8 ::1 {ip_str}\n")
 
-            try:
-                with open(JAIL_LOCAL_PATH, 'w') as f:
-                    f.writelines(lines)
-            except PermissionError:
-                return False, 'Permission denied: cannot write to jail.local.'
+            ok, msg = _write_jail_local_lines(lines)
+            if not ok:
+                return False, msg
             
         # Reload fail2ban (non-fatal if it fails)
         try:
@@ -375,9 +398,9 @@ def remove_from_whitelist(ip_str):
                         ips.remove(ip_str)
                         lines[i] = f"{parts[0]}= {' '.join(ips)}\n"
                 break
-                
-        with open(JAIL_LOCAL_PATH, 'w') as f:
-            f.writelines(lines)
+        ok, msg = _write_jail_local_lines(lines)
+        if not ok:
+            return False, msg
             
         reload()
         # Sync iptables ACCEPT rules for country block bypass

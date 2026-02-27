@@ -266,7 +266,13 @@ def restart_service():
 # Whitelist (ignoreip)
 # ---------------------------------------------------------------------------
 
-JAIL_LOCAL_PATH = '/etc/fail2ban/jail.local'
+import platform
+
+if platform.system() == 'Windows':
+    # Use a dummy local path for Windows / Laragon testing
+    JAIL_LOCAL_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'jail.local.test')
+else:
+    JAIL_LOCAL_PATH = '/etc/fail2ban/jail.local'
 
 def _write_jail_local_lines(lines):
     try:
@@ -286,15 +292,19 @@ def _write_jail_local_lines(lines):
             
             ok, output = _run(['cp', tmp_path, JAIL_LOCAL_PATH])
             if os.path.exists(tmp_path):
-                os.unlink(tmp_path)
+                try:
+                    os.unlink(tmp_path)
+                except Exception:
+                    pass
             
             if not ok:
-                return False, 'Permission denied: cannot write to jail.local.'
+                msg = output if output else 'Permission denied: cannot write to jail.local.'
+                return False, f'Failed to write {JAIL_LOCAL_PATH}. {msg}'
             
             _run(['chmod', '644', JAIL_LOCAL_PATH])
             return True, ''
         except Exception as e:
-            return False, f'Failed via sudo: {e}'
+            return False, f'Error writing config: {e}'
 
 
 def get_whitelist():

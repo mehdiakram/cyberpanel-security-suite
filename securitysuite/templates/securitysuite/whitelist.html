@@ -11,15 +11,18 @@
 
 {% block content %}
 <div class="ss-panel">
-    <div class="ss-panel-header">
+    <div class="ss-panel-header" style="flex-direction: column; align-items: center; text-align: center;">
         <div>
             <h3>Add to Whitelist</h3>
             <small class="ss-text-muted">IPs added here will never be banned by Fail2ban (added to ignoreip).</small>
-            <br><small class="ss-text-muted">Your current IP: <strong>{{ client_ip }}</strong></small>
+        </div>
+        <div
+            style="margin-top: 15px; padding: 10px 20px; background-color: #e8f0fe; color: #1a73e8; border-radius: 8px; font-weight: 500; font-size: 1.1em; border: 1px solid #c2d7fa;">
+            Your current IP: <strong>{{ client_ip }}</strong>
         </div>
     </div>
-    <div class="ss-panel-body">
-        <form onsubmit="return SS.handleWhitelistAdd(event)" class="ss-form-inline">
+    <div class="ss-panel-body" style="text-align: center;">
+        <form onsubmit="return SS.handleWhitelistAdd(event)" class="ss-form-inline" style="justify-content: center;">
             <div class="ss-form-group">
                 <label for="whitelist-ip">IP Address</label>
                 <input type="text" id="whitelist-ip" class="ss-input" placeholder="e.g. 192.168.1.100"
